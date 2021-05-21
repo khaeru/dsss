@@ -8,6 +8,6 @@ Usage
 
 To run a debug server::
 
-  git clone git@github.com:khaeru/dsss.git
-  pip install --editable dsss
-  dsss debug
+  git clone git@github.com:khaeru/dsss.git && cd dsss
+  pip install --editable .
+  FLASK_APP=. dsss debug
