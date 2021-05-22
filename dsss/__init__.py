@@ -1,9 +1,20 @@
-import json
-from datetime import datetime
+# TODO per the SDMX REST cheat sheet
+#
+# - Handle HTTP headers:
+#   If-Modified-Since Get the data only if something has changed
+#   Accept            Select the desired format
+#   Accept-Encoding   Compress the response
+
 from pathlib import Path
 
 from flask import Flask, Response, abort, render_template, request
 import sdmx
+
+from .storage import get_data, get_structures
+from .util import prepare_message
+
+# TODO read via setuptools-scm
+__version__ = "0.1"
 
 app = Flask(__name__)
 
@@ -13,33 +24,17 @@ app.template_folder = Path(__file__).parent.joinpath("template")
 
 @app.route("/")
 def index():
-    # TODO configure the templates path app-wide
+    "Information page"
     return render_template("index.html")
 
 
-# MIME types
-# SDMX-ML Generic Data
-# application/vnd.sdmx.genericdata+xml;version=2.1
-# SDMX-ML StructureSpecific Data
-# application/vnd.sdmx.structurespecificdata+xml;version=2.1
-# SDMX-JSON Data
-# application/vnd.sdmx.data+json;version=1.0.0
-# SDMX-CSV Data
-# application/vnd.sdmx.data+csv;version=1.0.0
-# SDMX-ML Structure
-# application/vnd.sdmx.structure+xml;version=2.1
-# SDMX-JSON Structure
-# application/vnd.sdmx.structure+json;version=1.0.0
-# SDMX-ML Schemas
-# application/vnd.sdmx.schema+xml;version=2.1
-# SDMX-ML Generic Metadata
-# application/vnd.sdmx.genericmetadata+xml;version=2.1
-# SDMX-ML StructureSpecific Meta
-# application/vnd.sdmx.structurespecificmetadata+xml;version=2.1
-
-
+# TODO per the standard, make all query parameters after `resource` optional
+# NB a URL with five parts is unambiguously a structure request; others need to be
+#    disambiguated
 @app.route("/<resource>/<agency_id>/<resource_id>/<version>/<item_id>")
-def structure(resource, agency_id, resource_id, version, item_id):
+def structure(
+    resource, agency_id="all", resource_id="all", version="latest", item_id="all"
+):
     # Check the resource type
     # TODO reimplement as a flask 'converter'
     try:
@@ -48,13 +43,38 @@ def structure(resource, agency_id, resource_id, version, item_id):
     except (AssertionError, KeyError):
         abort(404)
 
+    params = structure_query_params(request.args)
+
+    msg = get_structures(
+        app.config, resource, agency_id, resource_id, version, item_id, **params
+    )
+
+    prepare_message(
+        msg,
+        footer_info=[resource, agency_id, resource_id, version, item_id, params],
+    )
+
+    resp = Response(
+        sdmx.to_xml(msg),
+        content_type="application/vnd.sdmx.structure+xml;version=2.1",
+    )
+
+    # Set the 'Server' HTTP header
+    # TODO do this somewhere more general, i.e. for all responses
+    # TODO also include the defaults, e.g. "Werkzeug/2.0 Python/3.8.6"
+    resp.headers["Server"] = f"DSSS/{__version__}"
+
+    return resp
+
+
+def structure_query_params(raw):
     # Prepare a mutable copy of immutable request.args
-    args = dict(request.args)
+    params = dict(raw)
 
     # Set default values and check the two recognized query parameters
-    args.setdefault("detail", "full")
+    params.setdefault("detail", "full")
 
-    assert args["detail"] in {
+    assert params["detail"] in {
         "allstubs",
         "referencestubs",
         "allcompletestubs",
@@ -63,9 +83,9 @@ def structure(resource, agency_id, resource_id, version, item_id):
         "full",
     }
 
-    args.setdefault("references", "none")
+    params.setdefault("references", "none")
 
-    assert args["references"] in {
+    assert params["references"] in {
         "none",
         "parents",
         "parentsandsiblings",
@@ -74,44 +94,57 @@ def structure(resource, agency_id, resource_id, version, item_id):
         "all",
     }
 
-    msg = sdmx.read_sdmx(app.config["data_path"] / f"{agency_id}-structure.xml")
-    # TODO filter contents
-    # TODO cache pickled objects
-
-    msg.header.prepared = datetime.now()
-
-    if msg.footer is None:
-        msg.footer = sdmx.message.Footer()
-
-    msg.footer.text.append(
-        ", ".join(
-            map(
-                repr,
-                [resource, agency_id, resource_id, version, item_id, request.args],
-            )
-        )
-    )
-
-    return Response(
-        sdmx.to_xml(msg),
-        content_type="application/vnd.sdmx.structure+xml;version=2.1",
-    )
+    return params
 
 
+def data_query_params(raw):
+    # TODO map the query names to these Pythonic names
+
+    # Prepare a mutable copy of immutable request.args
+    params = dict(raw)
+
+    params.setdefault("start_period", None)
+    # TODO validate “ISO8601 (e.g. 2014-01) or SDMX reporting period (e.g. 2014-Q3)”
+    #      …using pandas
+    #
+    # Daily/Business YYYY-MM-DD
+    # Weekly         YYYY-W[01-53]
+    # Monthly        YYYY-MM
+    # Quarterly      YYYY-Q[1-4]
+    # Semi-annual    YYYY-S[1-2]
+    # Annual         YYYY
+
+    params.setdefault("end_period", None)
+    # TODO validate (same as above)
+
+    params.setdefault("updated_after", None)
+    # TODO validate “Must be percent-encoded (e.g.: 2009-05-15T14%3A15%3A00%2B01%3A00)”
+
+    params.setdefault("first_n_observations", None)
+    params.setdefault("last_n_observations", None)
+    params.setdefault("dimension_at_observation", "TIME_PERIOD")
+    params.setdefault("detail", "full")
+
+    assert params["detail"] in {"full", "dataonly", "serieskeysonly", "nodata"}
+
+    params.setdefault("include_history", False)
+
+    return params
+
+
+# TODO per the standard, make all query parameters after `flow_ref` optional
 @app.route("/<resource>/<flow_ref>/<key>/<provider_ref>")
-def data(resource, flow_ref, key, provider_ref):
+def data(resource, flow_ref, key="all", provider_ref="all"):
     if resource not in {"data", "metadata"}:
         abort(404)
 
-    request.args
+    params = data_query_params(request.args)
 
-    h = sdmx.message.Header(prepared=datetime.now())
-    f = sdmx.message.Footer(
-        text=[
-            ", ".join(map(repr, [resource, flow_ref, key, provider_ref, request.args]))
-        ]
+    msg = get_data(app.config, resource, flow_ref, key, provider_ref, **params)
+
+    prepare_message(
+        msg, footer_info=[resource, flow_ref, key, provider_ref, request.args]
     )
-    msg = sdmx.message.DataMessage(header=h, footer=f)
 
     return Response(
         sdmx.to_xml(msg, pretty_print=True),
