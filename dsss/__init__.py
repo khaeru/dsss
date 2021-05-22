@@ -7,8 +7,10 @@
 
 from pathlib import Path
 
-from flask import Flask, Response, abort, render_template, request
 import sdmx
+from flask import Flask, Response, abort, render_template, request
+from werkzeug.routing import BaseConverter, ValidationError
+
 
 from .storage import get_data, get_structures
 from .util import prepare_message
@@ -28,21 +30,54 @@ def index():
     return render_template("index.html")
 
 
-# TODO per the standard, make all query parameters after `resource` optional
-# NB a URL with five parts is unambiguously a structure request; others need to be
-#    disambiguated
-@app.route("/<resource>/<agency_id>/<resource_id>/<version>/<item_id>")
-def structure(
-    resource, agency_id="all", resource_id="all", version="latest", item_id="all"
-):
-    # Check the resource type
-    # TODO reimplement as a flask 'converter'
-    try:
-        resource = sdmx.Resource(resource)
-        assert resource not in {sdmx.Resource.data, sdmx.Resource.metadata}
-    except (AssertionError, KeyError):
-        abort(404)
+class SDMXResourceConverter(BaseConverter):
+    def __init__(self, url_map, kind):
+        super().__init__(url_map)
+        assert kind in {"data", "structure"}
+        self.data_kind = kind == "data"
 
+    def to_python(self, value):
+        # Check the resource type
+        try:
+            sdmx.Resource(value)
+
+            # If data_kind is True, `value` should be in this set; otherwise not
+            assert (
+                value in {sdmx.Resource.data, sdmx.Resource.metadata}
+            ) is self.data_kind
+        except (AssertionError, KeyError):
+            raise ValidationError
+        else:
+            print(f"Returning {value}")
+            return value
+
+
+app.url_map.converters["sdmx"] = SDMXResourceConverter
+
+# Don't give 301 when applying default routes
+app.url_map.redirect_defaults = False
+
+
+@app.route(
+    "/<sdmx(kind=structure):resource>",
+    defaults=dict(agency_id="all", resource_id="all", version="latest", item_id="all"),
+)
+@app.route(
+    "/<sdmx(kind=structure):resource>/<agency_id>",
+    defaults=dict(resource_id="all", version="latest", item_id="all"),
+)
+@app.route(
+    "/<sdmx(kind=structure):resource>/<agency_id>/<resource_id>",
+    defaults=dict(version="latest", item_id="all"),
+)
+@app.route(
+    "/<sdmx(kind=structure):resource>/<agency_id>/<resource_id>/<version>",
+    defaults=dict(item_id="all"),
+)
+@app.route(
+    "/<sdmx(kind=structure):resource>/<agency_id>/<resource_id>/<version>/<item_id>"
+)
+def structure(resource, agency_id, resource_id, version, item_id):
     params = structure_query_params(request.args)
 
     msg = get_structures(
@@ -133,11 +168,8 @@ def data_query_params(raw):
 
 
 # TODO per the standard, make all query parameters after `flow_ref` optional
-@app.route("/<resource>/<flow_ref>/<key>/<provider_ref>")
+@app.route("/<sdmx(kind=data):resource>/<flow_ref>/<key>/<provider_ref>")
 def data(resource, flow_ref, key="all", provider_ref="all"):
-    if resource not in {"data", "metadata"}:
-        abort(404)
-
     params = data_query_params(request.args)
 
     msg = get_data(app.config, resource, flow_ref, key, provider_ref, **params)
