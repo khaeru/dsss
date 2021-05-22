@@ -40,7 +40,7 @@ Roadmap
 For a 1.0 release, the code will _tolerate_ all the queries possible using the `SDMX REST cheat sheet <https://raw.githubusercontent.com/sdmx-twg/sdmx-rest/master/v2_1/ws/rest/docs/rest_cheat_sheet.pdf>`_.
 Thus:
 
-- [ ] Respect optional path parts.
+- [x] Respect optional path parts.
 - [ ] Return appropriate error messages for unavailable resources.
 - [ ] Filter structures (partial implementation).
 - [ ] Filter data (partial implementation).
