@@ -49,5 +49,10 @@ Thus:
 
 After 1.0:
 
-- [ ] Provide a complete test suite.
-- [ ] Use Flask's `logging capabilities <https://flask.palletsprojects.com/en/2.0.x/logging/>`_.
+- Provide a complete test suite.
+- Use Flask's `logging capabilities <https://flask.palletsprojects.com/en/2.0.x/logging/>`_.
+- Integrate URL construction in `sdmx1 <https://github.com/khaeru/sdmx`_.
+
+  Flask provides the `url_for() <https://flask.palletsprojects.com/en/2.0.x/api/#flask.url_for>`_ function and underying machinery to construct URLs within the routing scheme for an application.
+  This mirrors the code in `sdmx1.Client._request_from_args() <https://github.com/khaeru/sdmx/blob/main/sdmx/client.py#L161>`_, about 100 lines.
+  Consider ways to provide common code in ``sdmx1`` and reuse that code in DSSS, or vice versa.

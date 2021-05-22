@@ -1,3 +1,8 @@
+"""Information defined in the SDMX REST web service standard.
+
+.. todo:: Move to the sdmx1 package.
+"""
+
 #: SDMX MIME types.
 MIME = {
     "SDMX-ML Generic Data": "application/vnd.sdmx.genericdata+xml;version=2.1",
