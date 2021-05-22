@@ -22,7 +22,6 @@ class SDMXResourceConverter(BaseConverter):
         except (AssertionError, KeyError):
             raise ValidationError
         else:
-            print(f"Returning {value}")
             return value
 
 
@@ -33,4 +32,9 @@ def finalize_message(msg, footer_info):
     if msg.footer is None:
         msg.footer = sdmx.message.Footer()
 
-    msg.footer.text.append(", ".join(map(repr, footer_info)))
+    msg.footer.text.append(
+        sdmx.model.InternationalString(
+            "DSSS received or interpreted the request with path parts/query parameters:\n"
+            + ", ".join(map(repr, footer_info))
+        )
+    )
