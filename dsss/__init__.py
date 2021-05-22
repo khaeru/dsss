@@ -8,7 +8,7 @@
 from pathlib import Path
 
 import sdmx
-from flask import Flask, Response, abort, render_template, request
+from flask import Flask, Response, render_template, request
 from werkzeug.routing import BaseConverter, ValidationError
 
 
@@ -58,6 +58,7 @@ app.url_map.converters["sdmx"] = SDMXResourceConverter
 app.url_map.redirect_defaults = False
 
 
+# TODO simplify, maybe as calls to app.add_url_rule()
 @app.route(
     "/<sdmx(kind=structure):resource>",
     defaults=dict(agency_id="all", resource_id="all", version="latest", item_id="all"),
@@ -167,9 +168,15 @@ def data_query_params(raw):
     return params
 
 
-# TODO per the standard, make all query parameters after `flow_ref` optional
+@app.route(
+    "/<sdmx(kind=data):resource>/<flow_ref>",
+    defaults=dict(key="all", provider_ref="all"),
+)
+@app.route(
+    "/<sdmx(kind=data):resource>/<flow_ref>/<key>", defaults=dict(provider_ref="all")
+)
 @app.route("/<sdmx(kind=data):resource>/<flow_ref>/<key>/<provider_ref>")
-def data(resource, flow_ref, key="all", provider_ref="all"):
+def data(resource, flow_ref, key, provider_ref):
     params = data_query_params(request.args)
 
     msg = get_data(app.config, resource, flow_ref, key, provider_ref, **params)
