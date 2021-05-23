@@ -1,9 +1,11 @@
 import re
+from io import BytesIO
 from operator import itemgetter
 
 from dsss import build_app
 
 import pytest
+import sdmx
 
 
 @pytest.fixture(scope="session")
@@ -64,3 +66,6 @@ def test_path(client, path, code, expr):
 
     # Contents match
     assert re.search(expr, rv.data)
+
+    # Response can be parsed using sdmx1
+    sdmx.read_sdmx(BytesIO(rv.data))
