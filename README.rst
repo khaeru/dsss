@@ -6,10 +6,8 @@ A rudimentary implementation of the `SDMX REST web service <https://github.com/s
 This code is developed mainly as an aid for prototyping and testing other code that generates SDMX or relies on SDMX REST web services being available.
 It is not intended and likely not ready for production use.
 
-Usage
-=====
-
-To run a debug server:
+Run a local server
+==================
 
 1. ``git clone git@github.com:khaeru/dsss.git && cd dsss``
 
@@ -33,6 +31,27 @@ To run a debug server:
 
     curl -i http://127.0.0.1:5000/codelist/AGENCY/CL_FOO/latest/all?detail=full
 
+Deploy to Google App Engine
+===========================
+
+At minimum, this requires a file ``app.yaml`` containing:
+
+.. code-block:: yaml
+
+   runtime: python39
+   entrypoint: gunicorn -b :$PORT dsss:serve
+
+and a file ``requirements.txt`` containing:
+
+.. code-block::
+
+   git+git://github.com/khaeru/dsss#egg=dsss
+   gunicorn
+
+Then (with the `Google Cloud SDK <https://cloud.google.com/sdk/docs/install>`_ installed and configured) run::
+
+    gcloud app deploy
+
 
 Roadmap
 =======
@@ -45,7 +64,7 @@ Thus:
 - [x] Filter structures (partial implementation).
 - [ ] Filter data (partial implementation).
 - [x] Return footer or other messages when the response is not fully filtered per path and query parameters.
-- [ ] Provide `dsss`-specific instructions for deployment, with reference to the `Flask docs <https://flask.palletsprojects.com/en/2.0.x/deploying/>`_.
+- [x] Provide `dsss`-specific instructions for deployment, with reference to the `Flask docs <https://flask.palletsprojects.com/en/2.0.x/deploying/>`_.
 
 After 1.0:
 
