@@ -44,7 +44,7 @@ Thus:
 - [x] Return appropriate error messages for unavailable resources.
 - [x] Filter structures (partial implementation).
 - [ ] Filter data (partial implementation).
-- [ ] Return footer or other messages when the response is not fully filtered per path and query parameters.
+- [x] Return footer or other messages when the response is not fully filtered per path and query parameters.
 - [ ] Provide `dsss`-specific instructions for deployment, with reference to the `Flask docs <https://flask.palletsprojects.com/en/2.0.x/deploying/>`_.
 
 After 1.0:

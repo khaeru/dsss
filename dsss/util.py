@@ -39,16 +39,34 @@ class FlowRefConverter(BaseConverter):
         return tuple(result + self.defaults[L:])
 
 
-def finalize_message(msg, footer_info):
-    # Set the prepared time
-    msg.header.prepared = datetime.now()
-
+def add_footer_text(msg, texts):
     if msg.footer is None:
         msg.footer = sdmx.message.Footer()
 
-    msg.footer.text.append(
-        sdmx.model.InternationalString(
-            "DSSS received or interpreted the request with path parts/query "
-            " parameters:\n" + ", ".join(map(repr, footer_info))
-        )
-    )
+    for text in texts:
+        msg.footer.text.append(sdmx.model.InternationalString(text))
+
+
+def finalize_message(msg):
+    # Set the prepared time
+    msg.header.prepared = datetime.now()
+
+
+def not_implemented_options(defaults, **values):
+    """Generate footer text for not implemented query parameters in `values`."""
+    for name, value in values.items():
+        if value != defaults[name]:
+            yield (
+                f"Warning: ignored not implemented query parameter {name}={value}"
+                + ("" if defaults[name] is None else f" != {repr(defaults[name])}")
+            )
+
+
+def not_implemented_path(defaults, **values):
+    """Generate footer text for not implemented path parts in `values`."""
+    for name, value in values.items():
+        if value != defaults[name]:
+            yield (
+                f"Warning: ignored not implemented path part "
+                f"{name}={value} != {repr(defaults[name])}"
+            )
