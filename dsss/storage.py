@@ -1,5 +1,6 @@
 import sdmx
 
+from . import cache
 from .util import add_footer_text, not_implemented_options, not_implemented_path
 
 #: Prepared SDMX ErrorMessage objects.
@@ -21,10 +22,26 @@ def get_data(config, resource, agency_id, flow_id, version, key, provider_ref, p
     if len(unknown_params):
         footer_text.append(f"Ignored unknown query parameters {repr(unknown_params)}")
 
-    # TODO cache pickled objects
-
     # ‘Repository’ of *all* data for this flow
-    repo = sdmx.read_sdmx(config["data_path"] / f"{agency_id}:{flow_id}-{resource}.xml")
+    repo_path = config["data_path"] / f"{agency_id}:{flow_id}-{resource}.xml"
+
+    cache_key = (
+        repo_path.stat().st_mtime,
+        resource,
+        agency_id,
+        flow_id,
+        version,
+        key,
+        provider_ref,
+        options,
+    )
+    msg = cache.get(cache_key)
+    if msg:
+        add_footer_text(msg, footer_text)
+        return msg
+
+    # Cache miss
+    repo = sdmx.read_sdmx(repo_path)
 
     # Filter
 
@@ -52,6 +69,8 @@ def get_data(config, resource, agency_id, flow_id, version, key, provider_ref, p
             **options,
         )
     )
+
+    cache.set(cache_key, msg)
 
     add_footer_text(repo, footer_text)
 
@@ -117,8 +136,6 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
     if len(unknown_params):
         footer_text.append(f"Ignored unknown query parameters {repr(unknown_params)}")
 
-    # TODO cache pickled objects
-
     if agency_id == "all":
         # Determine the list of all providers being served
         agency_ids = list(
@@ -135,7 +152,26 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
         agency_id = agency_ids[0]
 
     # ‘Repository’ of *all* structures
-    repo = sdmx.read_sdmx(config["data_path"] / f"{agency_id}-structure.xml")
+    repo_path = config["data_path"] / f"{agency_id}-structure.xml"
+
+    cache_key = (
+        repo_path.stat().st_mtime,
+        resource,
+        agency_id,
+        resource_id,
+        version,
+        item_id,
+        options,
+    )
+
+    msg = cache.get(cache_key)
+    if msg:
+        add_footer_text(msg, footer_text)
+        return msg
+
+    # Cache miss
+
+    repo = sdmx.read_sdmx(repo_path)
 
     # Filtered message
     msg = sdmx.message.StructureMessage()
@@ -167,7 +203,9 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
             getattr(msg, resource)[resource_id] = collection[resource_id]
         except KeyError:
             # Not found
-            return ERRORS[404]
+            msg = ERRORS[404]
+
+    cache.set(cache_key, msg)
 
     add_footer_text(msg, footer_text)
 

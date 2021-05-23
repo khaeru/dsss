@@ -9,6 +9,7 @@ from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 
 import flask
+import flask_caching
 import sdmx
 import werkzeug
 from flask import Response, abort, current_app, render_template, request
@@ -74,6 +75,15 @@ def build_app() -> flask.Flask:
     # TODO read from a configuration file per
     #      https://flask.palletsprojects.com/en/2.0.x/config/
     app.config["data_path"] = Path.cwd() / "data"
+
+    # Configure caching
+    flask_caching.Cache(
+        app,
+        config=dict(
+            CACHE_TYPE="FileSystemCache",
+            CACHE_DIR=app.config["data_path"].joinpath("cache"),
+        ),
+    )
 
     return app
 
