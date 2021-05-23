@@ -25,7 +25,7 @@ except PackageNotFoundError:
     __version__ = "UNKNOWN"
 
 
-def build_app() -> flask.Flask:
+def build_app(data_path=None) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
 
@@ -74,7 +74,7 @@ def build_app() -> flask.Flask:
     # Path containing data
     # TODO read from a configuration file per
     #      https://flask.palletsprojects.com/en/2.0.x/config/
-    app.config["data_path"] = Path.cwd() / "data"
+    app.config["data_path"] = data_path or (Path.cwd() / "data")
 
     # Configure caching
     flask_caching.Cache(
