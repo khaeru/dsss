@@ -15,7 +15,12 @@ import werkzeug
 from flask import Response, abort, current_app, render_template, request
 
 from .storage import get_data, get_structures
-from .util import FlowRefConverter, SDMXResourceConverter, finalize_message
+from .util import (
+    FlowRefConverter,
+    SDMXResourceConverter,
+    finalize_message,
+    gen_error_message,
+)
 
 
 try:
@@ -70,6 +75,10 @@ def build_app(data_path=None) -> flask.Flask:
     app.add_url_rule("/", view_func=index)
 
     app.after_request(add_server)
+
+    # Error handlers
+    for status_code in (400, 404, 501):
+        app.register_error_handler(status_code, handle_error)
 
     # Path containing data
     # TODO read from a configuration file per
@@ -150,6 +159,20 @@ def add_server(response):
         ]
     )
     return response
+
+
+def handle_error(e):
+    """Handle errors."""
+    code = e.code
+    text = e.description
+
+    if code == 404:
+        # 404 indicates a routing failure, e.g. the user gave a malformed URL
+        # The SDMX REST standard specifies this is a "400 Syntax error"
+        text = f"{request.path} is not a valid SDMX REST path"
+        code = 400
+
+    return gen_error_message(code, text), code
 
 
 def demo():

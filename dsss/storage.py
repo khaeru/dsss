@@ -1,13 +1,8 @@
 import sdmx
+from flask import abort
 
 from . import cache
 from .util import add_footer_text, not_implemented_options, not_implemented_path
-
-#: Prepared SDMX ErrorMessage objects.
-ERRORS = {
-    404: sdmx.message.ErrorMessage(footer=sdmx.message.Footer(code=404)),
-    501: sdmx.message.ErrorMessage(footer=sdmx.message.Footer(code=501)),
-}
 
 
 def get_data(config, resource, agency_id, flow_id, version, key, provider_ref, params):
@@ -179,12 +174,16 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
     # sdmx.model class for the resource
     cls = sdmx.model.get_class(resource)
 
+    if cls is None:
+        footer_text.append(f"resource={repr(resource)}")
+        abort(501, *footer_text)
+
     # Source and target collections
     collection = repo.objects(cls)
     target = msg.objects(cls)
 
     if collection is None:
-        return ERRORS[501]
+        abort(501, *footer_text)
 
     # Filter
 
@@ -203,7 +202,7 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
             getattr(msg, resource)[resource_id] = collection[resource_id]
         except KeyError:
             # Not found
-            msg = ERRORS[404]
+            abort(404, *footer_text)
 
     cache.set(cache_key, msg)
 
