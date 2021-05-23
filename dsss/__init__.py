@@ -179,3 +179,8 @@ def demo():
     """Run a local demo server."""
     # TODO make click-y, e.g. with --help
     build_app().run(debug=True)
+
+
+def serve():
+    """Run a non-debug server."""
+    build_app().run()
