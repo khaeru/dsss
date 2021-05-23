@@ -17,7 +17,7 @@ To run a debug server:
 
    - 1 or more files containing SDMX structure messages, named e.g. ``AGENCY-structure.xml``, where AGENCY is the ID of an agency that is an SDMX data provider.
      This single file contains all possible structures provided by AGENCY, to be filtered per the request.
-   - 0 or more files containing SDMX (meta)data messages, named e.g. ``FLOW1-data.xml`` or ``FLOW2-metadata.xml``, where FLOW1/2 is the ID of a (meta)data flow definition, and -data or -metadata indicates the contents.
+   - 0 or more files containing SDMX (meta)data messages, named e.g. ``AGENCY:FLOW1-data.xml`` or ``AGENCY:FLOW2-metadata.xml``, where FLOW1/2 is the ID of a (meta)data flow definition, and -data or -metadata indicates the contents.
      Each file contains all possible (meta)data within the given (meta)dataflow, to be filtered per the request.
 
 3. Run::

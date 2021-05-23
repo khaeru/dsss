@@ -13,11 +13,15 @@ def get_data(
     """Return an SDMX DataMessage with the requested contents.
 
     The current version loads a file from the data path named
-    :file:`{flow_ref}-structure.xml`
+    :file:`{agency_id}:{flow_id}-structure.xml`
     """
-    # TODO filter contents
     # TODO cache pickled objects
-    return sdmx.read_sdmx(config["data_path"] / f"{flow_ref}-{resource}.xml")
+
+    # ‘Repository’ of *all* data for this flow
+    repo = sdmx.read_sdmx(config["data_path"] / f"{agency_id}:{flow_id}-{resource}.xml")
+
+    # TODO filter contents
+    return repo
 
 
 def get_structures(
