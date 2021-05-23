@@ -7,7 +7,9 @@ ERRORS = {
 }
 
 
-def get_data(config, resource, flow_ref, key, provider_ref, **options):
+def get_data(
+    config, resource, agency_id, flow_id, version, key, provider_ref, **options
+):
     """Return an SDMX DataMessage with the requested contents.
 
     The current version loads a file from the data path named

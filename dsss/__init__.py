@@ -11,7 +11,7 @@ import sdmx
 from flask import Flask, Response, current_app, render_template, request
 
 from .storage import get_data, get_structures
-from .util import SDMXResourceConverter, finalize_message
+from .util import FlowRefConverter, SDMXResourceConverter, finalize_message
 
 # TODO read via setuptools-scm
 __version__ = "0.1"
@@ -26,6 +26,7 @@ def build_app() -> Flask:
 
     # Validate SDMX resource/endpoint names in paths
     app.url_map.converters["sdmx"] = SDMXResourceConverter
+    app.url_map.converters["flow_ref"] = FlowRefConverter
 
     # Don't give 301 when applying default routes
     app.url_map.redirect_defaults = False
@@ -52,7 +53,7 @@ def build_app() -> Flask:
     add_url_rules(
         data_view,
         [
-            ("sdmx(kind=data):resource>/<flow_ref", None),
+            ("sdmx(kind=data):resource>/<flow_ref:flow_ref", None),
             ("key", "all"),
             ("provider_ref", "all"),
         ],
@@ -74,7 +75,7 @@ def build_app() -> Flask:
 def data_view(resource, flow_ref, key, provider_ref):
     params = data_query_params(request.args)
 
-    msg = get_data(current_app.config, resource, flow_ref, key, provider_ref, **params)
+    msg = get_data(current_app.config, resource, *flow_ref, key, provider_ref, **params)
 
     finalize_message(
         msg, footer_info=[resource, flow_ref, key, provider_ref, request.args]

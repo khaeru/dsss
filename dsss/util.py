@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Tuple
 
 import sdmx
 from werkzeug.routing import BaseConverter, ValidationError
@@ -23,6 +24,19 @@ class SDMXResourceConverter(BaseConverter):
             raise ValidationError
         else:
             return result
+
+
+class FlowRefConverter(BaseConverter):
+    defaults = [None, "all", "latest"]
+
+    def to_python(self, value: str) -> Tuple[str, str, str]:
+        result = value.split(",")
+
+        if len(result) > 3:
+            raise ValidationError
+
+        L = len(result)
+        return tuple(result + self.defaults[L:])
 
 
 def finalize_message(msg, footer_info):
