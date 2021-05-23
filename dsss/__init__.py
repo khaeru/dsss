@@ -7,6 +7,8 @@
 import logging
 import os
 import sys
+
+# This line requires Python 3.8
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 
