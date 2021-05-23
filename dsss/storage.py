@@ -18,7 +18,7 @@ def get_data(config, resource, agency_id, flow_id, version, key, provider_ref, p
         footer_text.append(f"Ignored unknown query parameters {repr(unknown_params)}")
 
     # ‘Repository’ of *all* data for this flow
-    repo_path = config["data_path"] / f"{agency_id}:{flow_id}-{resource}.xml"
+    repo_path = config["DATA_PATH"] / f"{agency_id}:{flow_id}-{resource}.xml"
 
     cache_key = (
         repo_path.stat().st_mtime,
@@ -136,7 +136,7 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
         agency_ids = list(
             map(
                 lambda p: p.name.split("-")[0],
-                config["data_path"].glob("*-structure.xml"),
+                config["DATA_PATH"].glob("*-structure.xml"),
             )
         )
 
@@ -147,7 +147,7 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
         agency_id = agency_ids[0]
 
     # ‘Repository’ of *all* structures
-    repo_path = config["data_path"] / f"{agency_id}-structure.xml"
+    repo_path = config["DATA_PATH"] / f"{agency_id}-structure.xml"
 
     cache_key = (
         repo_path.stat().st_mtime,

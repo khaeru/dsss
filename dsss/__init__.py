@@ -4,6 +4,8 @@
 #   If-Modified-Since Get the data only if something has changed
 #   Accept-Encoding   Compress the response
 
+import logging
+import os
 import sys
 from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
@@ -34,12 +36,21 @@ def build_app(data_path=None, cache_path=None) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
 
+    # Increase logging verbosity
+    logging.getLogger("root").setLevel(logging.INFO)
+    app.logger.setLevel(logging.INFO)
+
     try:
         # Read configuration from a file specified by an environment variable
-        app.config.from_envvar("DSSS_CONFIG")
-    except RuntimeError:
-        # No such file
-        pass
+        config_path = Path(os.environ["DSSS_CONFIG"])
+    except KeyError:
+        app.logger.info("No environment variable DSSS_CONFIG")
+    else:
+        if not config_path.is_absolute():
+            # Convert a relative to an absolute path
+            config_path = Path.cwd().joinpath(config_path).resolve()
+        app.logger.info(f"Read configuration from {config_path}")
+        app.config.from_pyfile(config_path)
 
     # Built-in Flask settings
 
@@ -100,17 +111,19 @@ def build_app(data_path=None, cache_path=None) -> flask.Flask:
         # Make an absolute path
         app.config[name] = Path(app.config[name]).resolve()
 
+        app.logger.info(f"Configured {name}={app.config[name]}")
+
     # Path containing data
-    use_path_defaults("data_path", data_path, Path.cwd() / "data")
+    use_path_defaults("DATA_PATH", data_path, Path.cwd() / "data")
 
     # Configure caching
     use_path_defaults(
-        "cache_path", cache_path, app.config["data_path"].joinpath("cache")
+        "CACHE_PATH", cache_path, app.config["DATA_PATH"].joinpath("cache")
     )
 
     flask_caching.Cache(
         app,
-        config=dict(CACHE_TYPE="FileSystemCache", CACHE_DIR=app.config["cache_path"]),
+        config=dict(CACHE_TYPE="FileSystemCache", CACHE_DIR=app.config["CACHE_PATH"]),
     )
 
     return app
