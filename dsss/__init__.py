@@ -2,24 +2,31 @@
 #
 # - Handle HTTP headers:
 #   If-Modified-Since Get the data only if something has changed
-#   Accept            Select the desired format
 #   Accept-Encoding   Compress the response
 
+import sys
+from importlib.metadata import version, PackageNotFoundError
 from pathlib import Path
 
+import flask
 import sdmx
-from flask import Flask, Response, current_app, render_template, request
+import werkzeug
+from flask import Response, abort, current_app, render_template, request
 
 from .storage import get_data, get_structures
 from .util import FlowRefConverter, SDMXResourceConverter, finalize_message
 
-# TODO read via setuptools-scm
-__version__ = "0.1"
+
+try:
+    __version__ = version(__name__)
+except PackageNotFoundError:
+    # package is not installed
+    __version__ = "UNKNOWN"
 
 
-def build_app() -> Flask:
+def build_app() -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
-    app = Flask(__name__)
+    app = flask.Flask(__name__)
 
     # Use Jinja2 templates from within the package
     app.template_folder = Path(__file__).parent.joinpath("template")
@@ -60,6 +67,8 @@ def build_app() -> Flask:
     )
 
     app.add_url_rule("/", view_func=index)
+
+    app.after_request(add_server)
 
     # Path containing data
     # TODO read from a configuration file per
@@ -119,6 +128,18 @@ def structure_view(resource, agency_id, resource_id, version, item_id):
 # Utility code
 
 
+def add_server(response):
+    """Set the 'Server' HTTP header."""
+    response.headers["Server"] = " ".join(
+        [
+            f"DSSS/{__version__}",
+            f"Flask/{flask.__version__}",
+            # The following reproduce the Flask defaults
+            f"Werkzeug/{werkzeug.__version__}",
+            f"Python/{sys.version.split()[0]}",
+        ]
+    )
+    return response
 
 
 def demo():
