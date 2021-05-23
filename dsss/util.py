@@ -4,6 +4,8 @@ from typing import Tuple
 import sdmx
 from werkzeug.routing import BaseConverter, ValidationError
 
+from .standard import RESPONSE_CODE
+
 
 class SDMXResourceConverter(BaseConverter):
     def __init__(self, url_map, kind):
@@ -20,8 +22,8 @@ class SDMXResourceConverter(BaseConverter):
             assert (
                 result in {sdmx.Resource.data, sdmx.Resource.metadata}
             ) is self.data_kind
-        except (AssertionError, KeyError):
-            raise ValidationError
+        except (AssertionError, ValueError):
+            raise ValidationError(f"resource={value}")
         else:
             return result
 
@@ -33,7 +35,7 @@ class FlowRefConverter(BaseConverter):
         result = value.split(",")
 
         if len(result) > 3:
-            raise ValidationError
+            raise ValidationError(f"flow_ref={value}")
 
         L = len(result)
         return tuple(result + self.defaults[L:])
@@ -50,6 +52,12 @@ def add_footer_text(msg, texts):
 def finalize_message(msg):
     # Set the prepared time
     msg.header.prepared = datetime.now()
+
+
+def gen_error_message(code, text):
+    msg = sdmx.message.ErrorMessage(footer=sdmx.message.Footer(code=code))
+    add_footer_text(msg, [f"{RESPONSE_CODE[code]}: {text}"])
+    return sdmx.to_xml(msg)
 
 
 def not_implemented_options(defaults, **values):
