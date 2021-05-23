@@ -30,9 +30,18 @@ except PackageNotFoundError:
     __version__ = "UNKNOWN"
 
 
-def build_app(data_path=None) -> flask.Flask:
+def build_app(data_path=None, cache_path=None) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
+
+    try:
+        # Read configuration from a file specified by an environment variable
+        app.config.from_envvar("DSSS_CONFIG")
+    except RuntimeError:
+        # No such file
+        pass
+
+    # Built-in Flask settings
 
     # Use Jinja2 templates from within the package
     app.template_folder = Path(__file__).parent.joinpath("template")
@@ -80,18 +89,28 @@ def build_app(data_path=None) -> flask.Flask:
     for status_code in (400, 404, 501):
         app.register_error_handler(status_code, handle_error)
 
+    def use_path_defaults(name, arg, default):
+        # Set the default if not loaded from a config file (above)
+        app.config.setdefault(name, default)
+
+        if arg:
+            # Override with a direct function argument
+            app.config[name] = arg
+
+        # Make an absolute path
+        app.config[name] = Path(app.config[name]).resolve()
+
     # Path containing data
-    # TODO read from a configuration file per
-    #      https://flask.palletsprojects.com/en/2.0.x/config/
-    app.config["data_path"] = data_path or (Path.cwd() / "data")
+    use_path_defaults("data_path", data_path, Path.cwd() / "data")
 
     # Configure caching
+    use_path_defaults(
+        "cache_path", cache_path, app.config["data_path"].joinpath("cache")
+    )
+
     flask_caching.Cache(
         app,
-        config=dict(
-            CACHE_TYPE="FileSystemCache",
-            CACHE_DIR=app.config["data_path"].joinpath("cache"),
-        ),
+        config=dict(CACHE_TYPE="FileSystemCache", CACHE_DIR=app.config["cache_path"]),
     )
 
     return app
