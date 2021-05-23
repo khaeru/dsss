@@ -104,7 +104,7 @@ def structure_view(resource, agency_id, resource_id, version, item_id):
     )
 
     resp = Response(
-        sdmx.to_xml(msg),
+        sdmx.to_xml(msg, pretty_print=True),
         content_type="application/vnd.sdmx.structure+xml;version=2.1",
     )
 
