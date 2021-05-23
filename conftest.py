@@ -1,1 +1,1 @@
-pytest_plugins = ("sdmx.testing",)
+pytest_plugins = ("sdmx.testing", "dsss.testing")
