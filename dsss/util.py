@@ -34,7 +34,7 @@ def finalize_message(msg, footer_info):
 
     msg.footer.text.append(
         sdmx.model.InternationalString(
-            "DSSS received or interpreted the request with path parts/query parameters:\n"
-            + ", ".join(map(repr, footer_info))
+            "DSSS received or interpreted the request with path parts/query "
+            " parameters:\n" + ", ".join(map(repr, footer_info))
         )
     )
