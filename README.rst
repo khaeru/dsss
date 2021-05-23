@@ -41,8 +41,8 @@ For a 1.0 release, the code will _tolerate_ all the queries possible using the `
 Thus:
 
 - [x] Respect optional path parts.
-- [ ] Return appropriate error messages for unavailable resources.
-- [ ] Filter structures (partial implementation).
+- [x] Return appropriate error messages for unavailable resources.
+- [x] Filter structures (partial implementation).
 - [ ] Filter data (partial implementation).
 - [ ] Return footer or other messages when the response is not fully filtered per path and query parameters.
 - [ ] Provide `dsss`-specific instructions for deployment, with reference to the `Flask docs <https://flask.palletsprojects.com/en/2.0.x/deploying/>`_.
