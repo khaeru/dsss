@@ -10,19 +10,19 @@ class SDMXResourceConverter(BaseConverter):
         assert kind in {"data", "structure"}
         self.data_kind = kind == "data"
 
-    def to_python(self, value):
+    def to_python(self, value: str) -> sdmx.Resource:
         # Check the resource type
         try:
-            sdmx.Resource(value)
+            result = sdmx.Resource(value)
 
             # If data_kind is True, `value` should be in this set; otherwise not
             assert (
-                value in {sdmx.Resource.data, sdmx.Resource.metadata}
+                result in {sdmx.Resource.data, sdmx.Resource.metadata}
             ) is self.data_kind
         except (AssertionError, KeyError):
             raise ValidationError
         else:
-            return value
+            return result
 
 
 def finalize_message(msg, footer_info):
