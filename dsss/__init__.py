@@ -18,7 +18,8 @@ import sdmx
 import werkzeug
 from flask import Response, abort, current_app, render_template, request
 
-from .storage import get_data, get_structures
+from .data import get_data
+from .structure import get_structures
 from .util import (
     FlowRefConverter,
     SDMXResourceConverter,
@@ -31,10 +32,12 @@ try:
     __version__ = version(__name__)
 except PackageNotFoundError:
     # package is not installed
-    __version__ = "UNKNOWN"
+    __version__ = "999"
 
 
-def build_app(data_path=None, cache_path=None) -> flask.Flask:
+def build_app(
+    store=None, data_path=None, cache_type=None, cache_dir=None
+) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
 
@@ -102,6 +105,9 @@ def build_app(data_path=None, cache_path=None) -> flask.Flask:
     for status_code in (400, 404, 501):
         app.register_error_handler(status_code, handle_error)
 
+    # Configuration
+    app.config.setdefault("DSSS_STORE", store or "local")
+
     def use_path_defaults(name, arg, default):
         # Set the default if not loaded from a config file (above)
         app.config.setdefault(name, default)
@@ -119,14 +125,11 @@ def build_app(data_path=None, cache_path=None) -> flask.Flask:
     use_path_defaults("DATA_PATH", data_path, Path.cwd() / "data")
 
     # Configure caching
-    use_path_defaults(
-        "CACHE_PATH", cache_path, app.config["DATA_PATH"].joinpath("cache")
-    )
+    app.config.setdefault("CACHE_TYPE", "FileSystemCache")
 
-    flask_caching.Cache(
-        app,
-        config=dict(CACHE_TYPE="FileSystemCache", CACHE_DIR=app.config["CACHE_PATH"]),
-    )
+    use_path_defaults("CACHE_DIR", cache_dir, app.config["DATA_PATH"].joinpath("cache"))
+
+    flask_caching.Cache(app)
 
     return app
 
