@@ -1,7 +1,11 @@
+import logging
+
 import sdmx
 from google.cloud import storage
 
 from dsss import cache
+
+log = logging.getLogger(__name__)
 
 client = storage.Client()
 
@@ -23,8 +27,12 @@ def get(config, path, cache_key):
     if msg:
         return msg, None
 
+    log.info(f"Read from {full_path}")
+
     with blob.open("rb") as f:
         msg = sdmx.read_sdmx(f)
+
+    log.info(f"Obtained:\n{repr(msg)}")
 
     return msg, cache_key
 

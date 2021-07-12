@@ -1,6 +1,10 @@
+import logging
+
 import sdmx
 
 from dsss import cache
+
+log = logging.getLogger(__name__)
 
 
 def get(config, path, cache_key):
@@ -13,8 +17,12 @@ def get(config, path, cache_key):
     if msg:
         return msg, None
 
+    log.info(f"Read from {full_path}")
+
     with full_path.open("rb") as f:
         msg = sdmx.read_sdmx(f)
+
+    log.info(f"Obtained:\n{repr(msg)}")
 
     return msg, cache_key
 
