@@ -1,0 +1,45 @@
+[build-system]
+requires = ["build", "setuptools-scm"]
+
+[project]
+dynamic = ["version"]
+name = "dsss"
+description = "Dead Simple SDMX Server"
+authors = [{ name = "dsss contributors" }]
+maintainers = [
+    { name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name" },
+]
+readme = "README.rst"
+classifiers = [
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.8"
+dependencies = ["flask", "flask-caching", "sdmx1"]
+
+[project.scripts]
+dsss = "dsss:demo"
+
+[project.urls]
+homepage = "https://github.com/khaeru/dsss"
+
+[[tool.mypy.overrides]]
+# Packages for which no type hints are available
+module = ["google.cloud"]
+ignore_missing_imports = true
+
+[tool.ruff]
+select = ["C9", "E", "F", "I", "W"]
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.setuptools.packages]
+find = {}

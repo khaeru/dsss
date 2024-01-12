@@ -2,7 +2,10 @@
 __pycache__
 *.egg-info
 .benchmarks
+.mypy_cache
 .pytest_cache
+.ruff_cache
+dist/
 
 # Test data
 data/

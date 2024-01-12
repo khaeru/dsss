@@ -37,7 +37,7 @@ class FlowRefConverter(BaseConverter):
             raise ValidationError(f"flow_ref={value}")
 
         L = len(result)
-        return tuple(result + self.defaults[L:])
+        return tuple(result + self.defaults[L:])  # type: ignore [return-value]
 
 
 def add_footer_text(msg, texts):
