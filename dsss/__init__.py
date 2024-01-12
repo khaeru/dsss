@@ -7,9 +7,7 @@
 import logging
 import os
 import sys
-
-# This line requires Python 3.8
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import flask
@@ -27,7 +25,6 @@ from .util import (
     gen_error_message,
 )
 
-
 try:
     __version__ = version(__name__)
 except PackageNotFoundError:
@@ -36,14 +33,18 @@ except PackageNotFoundError:
 
 
 def build_app(
-    store=None, data_path=None, cache_type=None, cache_dir=None
+    store=None, data_path=None, cache_type=None, cache_dir=None, **kwargs
 ) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
 
+    # Pass other keyword arguments as Flask configuration
+    app.config.from_mapping(kwargs)
+
     # Increase logging verbosity
-    logging.getLogger("root").setLevel(logging.INFO)
-    app.logger.setLevel(logging.INFO)
+    level = logging.DEBUG if app.config["DEBUG"] else logging.INFO
+    logging.getLogger("root").setLevel(level)
+    app.logger.setLevel(level)
 
     try:
         # Read configuration from a file specified by an environment variable
@@ -55,7 +56,7 @@ def build_app(
             # Convert a relative to an absolute path
             config_path = Path.cwd().joinpath(config_path).resolve()
         app.logger.info(f"Read configuration from {config_path}")
-        app.config.from_pyfile(config_path)
+        app.config.from_pyfile(str(config_path))
 
     # Built-in Flask settings
 
