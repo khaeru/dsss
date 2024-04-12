@@ -35,11 +35,9 @@ homepage = "https://github.com/khaeru/dsss"
 module = ["google.cloud"]
 ignore_missing_imports = true
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["C9", "E", "F", "I", "W"]
-
-[tool.ruff.mccabe]
-max-complexity = 10
+mccabe.max-complexity = 10
 
 [tool.setuptools.packages]
 find = {}
