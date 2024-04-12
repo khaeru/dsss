@@ -1,10 +1,8 @@
 import pytest
 
-from dsss.flask import build_app
-
 
 @pytest.fixture(scope="session")
-def client(tmp_path_factory, specimen):
+def tmp_data_for_app(tmp_path_factory, specimen):
     # Populate a temporary directory with symlinks to SDMX test data
     test_data_path = tmp_path_factory.mktemp("data")
     for name, target in {
@@ -14,9 +12,25 @@ def client(tmp_path_factory, specimen):
         with specimen(name, opened=False) as p:
             test_data_path.joinpath(target).symlink_to(p.resolve())
 
-    # Create the app, backed by the temporary directory
-    app = build_app(data_path=test_data_path)
-    app.config["TESTING"] = True
+    yield test_data_path
 
-    with app.test_client() as client:
-        yield client
+
+@pytest.fixture(scope="session", params=["flask", "starlette"])
+def client(request, tmp_data_for_app):
+    if request.param == "flask":
+        from dsss.flask import build_app
+
+        # Create the app, backed by the temporary directory
+        app = build_app(data_path=tmp_data_for_app)
+        app.config["TESTING"] = True
+
+        with app.test_client() as client:
+            yield client
+    elif request.param == "starlette":
+        from starlette.testclient import TestClient
+
+        from dsss.starlette import build_app
+
+        app = build_app()
+
+        yield TestClient(app)

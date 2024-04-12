@@ -8,6 +8,7 @@ repos:
     - flask-caching
     - pytest
     - sdmx1
+    - starlette
     args: []
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.3.7
