@@ -2,11 +2,11 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 from starlette.applications import Starlette
-from starlette.responses import HTMLResponse, Response
+from starlette.responses import HTMLResponse
 from starlette.routing import Route
 
+from .common import SDMXResponse, gen_error_message
 from .config import Config
-from .util import gen_error_message
 
 if TYPE_CHECKING:
     import starlette.requests
@@ -56,7 +56,7 @@ async def handle_exception(request: "starlette.requests.Request", exc):
         text = f"{request.url} is not a valid SDMX REST path"
         code = 400
 
-    return Response(gen_error_message(code, text), status_code=code)
+    return SDMXResponse(gen_error_message(code, text), status_code=code)
 
 
 async def index(request: "starlette.requests.Request"):
