@@ -90,7 +90,7 @@ def gen_error_message(code: int, text: str) -> "sdmx.message.ErrorMessage":
 def handle_media_type(
     supported: List["sdmx.format.MediaType"], value: Optional[str]
 ) -> str:
-    if value is None or value == "*/*":
+    if value is None or "*/*" in value:
         value = repr(supported[0])
     elif not any(value == repr(s) for s in supported):
         raise NotImplementedError(f"Return media type {value}")
