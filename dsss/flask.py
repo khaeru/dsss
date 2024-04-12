@@ -7,12 +7,12 @@
 import logging
 import os
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 import flask
 import flask_caching
 import sdmx
-import werkzeug
 from flask import Response, abort, current_app, render_template, request
 
 from .data import get_data
@@ -185,9 +185,9 @@ def add_server(response):
     response.headers["Server"] = " ".join(
         [
             f"DSSS/{__version__}",
-            f"Flask/{flask.__version__}",
+            f"Flask/{version('flask')}",
             # The following reproduce the Flask defaults
-            f"Werkzeug/{werkzeug.__version__}",
+            f"Werkzeug/{version('werkzeug')}",
             f"Python/{sys.version.split()[0]}",
         ]
     )
