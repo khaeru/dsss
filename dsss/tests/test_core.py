@@ -4,6 +4,9 @@ from operator import itemgetter
 
 import pytest
 import sdmx
+import sdmx.rest.v21
+import sdmx.rest.v30
+import sdmx.tests.test_rest
 
 
 def test_index(client):
@@ -39,7 +42,7 @@ SIMPLE_TESTS = (
 @pytest.mark.parametrize(
     "path, code, expr", SIMPLE_TESTS, ids=map(itemgetter(0), SIMPLE_TESTS)
 )
-def test_path(client, path, code, expr):
+def test_path0(client, path, code, expr):
     # Request succeeds
     rv = client.get(path)
 
@@ -51,3 +54,33 @@ def test_path(client, path, code, expr):
 
     # Response can be parsed using sdmx1
     sdmx.read_sdmx(BytesIO(rv.content))
+
+
+@pytest.fixture
+def source():
+    from sdmx.source import Source
+
+    yield Source(id="A0", url="https://example.com", name="Test source")
+
+
+@pytest.mark.parametrize(
+    "url_class, expected_index", ((sdmx.rest.v21.URL, 0), (sdmx.rest.v30.URL, 1))
+)
+@pytest.mark.parametrize(
+    "resource_type, kw, expected0, expected1", sdmx.tests.test_rest.PARAMS
+)
+def test_path1(
+    client, source, url_class, expected_index, resource_type, kw, expected0, expected1
+) -> None:
+    if [expected0, expected1][expected_index] is None:
+        return  # Not a constructable URL
+
+    # Create the URL, extract the path
+    url = url_class(source, resource_type, resource_id="ID0", **kw).join()
+    # print(url)
+
+    rv = client.get(url)
+    # print(rv.content.decode())
+
+    # Expected status code
+    assert 400 != rv.status_code
