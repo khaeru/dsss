@@ -5,7 +5,6 @@ repos:
   - id: mypy
     additional_dependencies:
     - flask
-    - flask-caching
     - pytest
     - sdmx1
     - starlette

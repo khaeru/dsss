@@ -3,8 +3,6 @@ import logging
 import sdmx
 from google.cloud import storage
 
-from dsss import cache
-
 log = logging.getLogger(__name__)
 
 client = storage.Client()
@@ -23,7 +21,8 @@ def get(config, path, cache_key):
 
     cache_key = tuple(list(cache_key) + [blob.time_created])
 
-    msg = cache.get(cache_key)
+    # msg = cache.get(cache_key)
+    msg = None
     if msg:
         return msg, None
 

@@ -3,8 +3,6 @@ from typing import TYPE_CHECKING
 
 import sdmx
 
-from dsss import cache
-
 if TYPE_CHECKING:
     import dsss.config
 
@@ -21,12 +19,10 @@ def get(config: "dsss.config.Config", path, cache_key):
 
     cache_key = tuple(list(cache_key) + [full_path.stat().st_mtime])
 
-    try:
-        msg = cache.get(cache_key)
-        if msg:
-            return msg, None
-    except RuntimeError:
-        pass
+    # msg = cache.get(cache_key)
+    msg = None
+    if msg:
+        return msg, None
 
     log.info(f"Read from {full_path}")
 

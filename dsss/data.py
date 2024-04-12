@@ -5,7 +5,7 @@ from sdmx.format import MediaType
 from starlette.convertors import Convertor, register_url_convertor
 from starlette.routing import Route
 
-from . import cache, storage
+from . import storage
 from .common import (
     SDMXResponse,
     add_footer_text,
@@ -120,11 +120,6 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
         )
     )
     # TODO Attach log messages about not implemented query parameters
-
-    try:
-        cache.set(cache_key, repo)
-    except RuntimeError:
-        pass
 
     add_footer_text(repo, footer_text)
 

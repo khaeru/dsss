@@ -9,12 +9,9 @@ import os
 from pathlib import Path
 
 import flask
-import flask_caching
 
 
-def build_app(
-    store=None, data_path=None, cache_type=None, cache_dir=None, **kwargs
-) -> flask.Flask:
+def build_app(store=None, data_path=None, **kwargs) -> flask.Flask:
     """Construct the DSSS :class:`.Flask` application."""
     app = flask.Flask(__name__)
 
@@ -61,13 +58,6 @@ def build_app(
 
     # Path containing data
     use_path_defaults("DATA_PATH", data_path, Path.cwd() / "data")
-
-    # Configure caching
-    app.config.setdefault("CACHE_TYPE", "FileSystemCache")
-
-    use_path_defaults("CACHE_DIR", cache_dir, app.config["DATA_PATH"].joinpath("cache"))
-
-    flask_caching.Cache(app)
 
     return app
 

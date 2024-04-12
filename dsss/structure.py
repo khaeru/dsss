@@ -8,7 +8,7 @@ from starlette.convertors import Convertor, register_url_convertor
 from starlette.responses import Response
 from starlette.routing import Route
 
-from . import cache, storage
+from . import storage
 from .common import (
     SDMXResponse,
     add_footer_text,
@@ -133,11 +133,6 @@ def get_structures(
         except KeyError:
             # Not found
             return Response(footer_text, status_code=404)
-
-    try:
-        cache.set(cache_key, msg)
-    except RuntimeError:
-        pass
 
     add_footer_text(msg, footer_text)
 
