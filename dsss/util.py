@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Tuple
 
 import sdmx
-from sdmx.rest import RESPONSE_CODE
+from sdmx.rest.common import RESPONSE_CODE
 from werkzeug.routing import BaseConverter, ValidationError
 
 

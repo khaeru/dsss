@@ -1,6 +1,6 @@
 import pytest
 
-from . import build_app
+from dsss.flask import build_app
 
 
 @pytest.fixture(scope="session")
