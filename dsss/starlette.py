@@ -1,7 +1,10 @@
+from datetime import datetime
 from importlib import import_module
 from typing import TYPE_CHECKING
 
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 
@@ -12,11 +15,31 @@ if TYPE_CHECKING:
     import starlette.requests
 
 
+class CustomHeaderMiddleware(BaseHTTPMiddleware):
+    """Middleware that sets the ``Server`` and ``Prepared`` HTTP headers."""
+
+    def __init__(self, app, *, server: str):
+        super().__init__(app)
+        self.server_header = server
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+
+        response.headers["Server"] = self.server_header
+        # TODO Check if necessary, or if starlette does this automatically
+        response.headers["Prepared"] = datetime.now().isoformat()
+
+        return response
+
+
 def build_app(**config_kwargs):
     # Parse configuration from arguments
     config = Config(**config_kwargs)
 
+    # Collection of routes
     routes = [Route("/", index)]
+
+    # Collect routes from each endpoint module
     for endpoint in (
         "availability",
         "data",
@@ -28,6 +51,7 @@ def build_app(**config_kwargs):
         mod = import_module(f"dsss.{endpoint}")
         routes.extend(mod.get_routes())
 
+    # Create app
     app = Starlette(
         debug=config.debug,
         routes=routes,
@@ -37,6 +61,9 @@ def build_app(**config_kwargs):
             404: handle_exception,
             # 501: handle_exception,
         },
+        middleware=[
+            Middleware(CustomHeaderMiddleware, server=config.version_string),
+        ],
     )
 
     # Store configuration on the app instance
