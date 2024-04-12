@@ -1,18 +1,19 @@
-from collections import ChainMap
 from itertools import product
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, List, Mapping
 
 import sdmx
+from sdmx.format import MediaType
 from sdmx.rest.common import Resource
 from starlette.convertors import Convertor, register_url_convertor
 from starlette.responses import Response
 from starlette.routing import Route
 
 from . import cache, storage
-from .util import (
+from .common import (
+    SDMXResponse,
     add_footer_text,
-    finalize_message,
-    not_implemented_options,
+    handle_media_type,
+    handle_query_params,
     not_implemented_path,
 )
 
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
     import starlette.requests
 
     import dsss.config
+
+NOT_IMPLEMENTED_QUERY = {"detail", "references"}
 
 
 class BaseResourceConvertor(Convertor):
@@ -30,17 +33,21 @@ class BaseResourceConvertor(Convertor):
         return value.name
 
 
-def get_routes():
+def register_convertors():
+    expr = "|".join([r.name for r in Resource if r != Resource.data])
+
     StructureResourceConvertor = type(
-        "StructureResourceConvertor",
-        (BaseResourceConvertor,),
-        {"regex": "agencyscheme|codelist|reportingtaxonomy"},
+        "StructureResourceConvertor", (BaseResourceConvertor,), {"regex": expr}
     )
-    register_url_convertor("sdmx_resource_structure", StructureResourceConvertor())
+    register_url_convertor("resource_type", StructureResourceConvertor())
+
+
+def get_routes():
+    register_convertors()
 
     bases = [
-        "/structure/{resource_type:sdmx_resource_structure}",  # SDMX-REST 2.1.0
-        "/{resource_type:sdmx_resource_structure}",  # SDMX-REST 1.5.0 / SDMX 2.1
+        "/structure/{resource_type:resource_type}",  # SDMX-REST 2.1.0 / SDMX 3.0.0
+        "/{resource_type:resource_type}",  # SDMX-REST 1.5.0 / SDMX 2.1
     ]
     paths = [
         "/{agency_id}",
@@ -52,22 +59,20 @@ def get_routes():
         yield Route(f"{base}{path}", handle)
 
 
-def get_structures(config: "dsss.config.Config", params: Mapping):
+def get_structures(
+    config: "dsss.config.Config", path_params: Mapping, query_params: Mapping
+):
     """Return an SDMX DataMessage with the requested contents.
 
     The current version loads a file from the data path named
     :file:`{agency_id}-structure.xml`.
     """
-    options, unknown_params = structure_query_params(params)
+    footer_text: List[str] = []
 
-    footer_text = []
-    if len(unknown_params):
-        footer_text.append(f"Ignored unknown query parameters {repr(unknown_params)}")
-
-    resource = params["resource_type"]
-    agency_id = params["agency_id"]
-    resource_id = params.get("resource_id", "all")
-    version = params.get("version", "all")
+    resource = path_params["resource_type"]
+    agency_id = path_params["agency_id"]
+    resource_id = path_params.get("resource_id", "all")
+    version = path_params.get("version", "all")
     item_id = "all"
 
     if agency_id == "all":
@@ -86,7 +91,7 @@ def get_structures(config: "dsss.config.Config", params: Mapping):
     repo, cache_key = storage.get(
         config,
         f"{agency_id}-structure.xml",
-        (resource, agency_id, resource_id, version, item_id, options),
+        (resource, agency_id, resource_id, version, item_id, query_params),
     )
 
     if not cache_key:
@@ -116,9 +121,7 @@ def get_structures(config: "dsss.config.Config", params: Mapping):
 
     # Warn about filtering features not implemented yet
     footer_text.extend(not_implemented_path(dict(version="latest"), version=version))
-    footer_text.extend(
-        not_implemented_options(dict(detail="full", references="none"), **options)
-    )
+    # TODO Attach log messages about not implemented query parameters
 
     if resource_id == "all":
         # Copy all object
@@ -141,51 +144,17 @@ def get_structures(config: "dsss.config.Config", params: Mapping):
     return msg
 
 
-def structure_query_params(raw):
-    # Prepare a mutable copy of immutable request.args
-    params = dict(raw)
-
-    unknown = set(params.keys()) - {"detail", "references"}
-    for param in unknown:
-        params.pop(param)
-
-    # Set default values and check the two recognized query parameters
-    params.setdefault("detail", "full")
-
-    assert params["detail"] in {
-        "allstubs",
-        "referencestubs",
-        "allcompletestubs",
-        "referencecompletestubs",
-        "referencepartial",
-        "full",
-    }
-
-    params.setdefault("references", "none")
-
-    assert params["references"] in {
-        "none",
-        "parents",
-        "parentsandsiblings",
-        "children",
-        "descendants",
-        "all",
-    }
-
-    return params, unknown
-
-
 async def handle(request: "starlette.requests.Request"):
-    default_ctype = "application/vnd.sdmx.structure+xml;version=2.1"
-    ctype = request.headers.get("Accept", default_ctype)
-    ctype = {"*/*": default_ctype}.get(ctype, ctype)
-    if ctype != default_ctype:
-        return Response(status_code=501)
+    media_type = handle_media_type(
+        [MediaType("structure", "xml", "2.1")], request.headers.get("Accept")
+    )
 
-    params = ChainMap(request.path_params, request.query_params)  # type: ignore [arg-type]
+    qp = handle_query_params(
+        sdmx.rest.v21.URL,
+        "detail_s references_s",
+        request.query_params,
+        not_implemented=NOT_IMPLEMENTED_QUERY,
+    )
+    msg = get_structures(request.app.state.config, request.path_params, qp)
 
-    msg = get_structures(request.app.state.config, params)
-
-    finalize_message(msg)
-
-    return Response(sdmx.to_xml(msg, pretty_print=True), media_type=ctype)
+    return SDMXResponse(message=msg, media_type=media_type)
