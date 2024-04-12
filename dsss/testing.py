@@ -24,4 +24,4 @@ def client(tmp_data_for_app):
     config = dict(data_path=tmp_data_for_app)
     app = build_app(**config)
 
-    yield TestClient(app)
+    yield TestClient(app, base_url="https://example.com")
