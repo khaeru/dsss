@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 
@@ -69,6 +70,7 @@ def build_app(**config_kwargs):
         },
         middleware=[
             Middleware(CustomHeaderMiddleware, server=config.version_string),
+            Middleware(GZipMiddleware, minimum_size=1000),
         ],
     )
 
