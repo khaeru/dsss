@@ -23,13 +23,9 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "flask",
     "sdmx1",
     "starlette",
 ]
-
-[project.scripts]
-dsss = "dsss:demo"
 
 [project.urls]
 homepage = "https://github.com/khaeru/dsss"

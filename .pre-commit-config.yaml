@@ -4,7 +4,6 @@ repos:
   hooks:
   - id: mypy
     additional_dependencies:
-    - flask
     - pytest
     - sdmx1
     - starlette

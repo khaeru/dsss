@@ -1,3 +1,9 @@
+# TODO per the SDMX REST cheat sheet
+#
+# - Handle HTTP headers:
+#   If-Modified-Since Get the data only if something has changed
+#   Accept-Encoding   Compress the response
+
 from datetime import datetime
 from importlib import import_module
 from typing import TYPE_CHECKING
