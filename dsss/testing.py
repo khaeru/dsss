@@ -15,14 +15,22 @@ def tmp_data_for_app(tmp_path_factory, specimen):
     yield test_data_path
 
 
-@pytest.fixture(scope="session", params=["flask", "starlette"])
+@pytest.fixture(
+    scope="session",
+    params=[
+        "flask",
+        "starlette",
+    ],
+)
 def client(request, tmp_data_for_app):
+    config = dict(data_path=tmp_data_for_app)
+
     if request.param == "flask":
         from dsss.flask import build_app
 
         # Create the app, backed by the temporary directory
-        app = build_app(data_path=tmp_data_for_app)
-        app.config["TESTING"] = True
+        config.update(TESTING=True)
+        app = build_app(**config)
 
         with app.test_client() as client:
             yield client
@@ -31,6 +39,6 @@ def client(request, tmp_data_for_app):
 
         from dsss.starlette import build_app
 
-        app = build_app()
+        app = build_app(**config)
 
         yield TestClient(app)
