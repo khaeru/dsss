@@ -46,7 +46,7 @@ def get_structures(config, resource, agency_id, resource_id, version, item_id, p
     msg = sdmx.message.StructureMessage()
 
     # sdmx.model class for the resource
-    cls = sdmx.model.get_class(resource)
+    cls = sdmx.model.v21.get_class(resource)
 
     if cls is None:
         footer_text.append(f"resource={repr(resource)}")
