@@ -33,12 +33,11 @@ def cached_store_for_app(pytestconfig, specimen):
 
 
 @pytest.fixture(scope="session")
-def client(tmp_data_for_app):
+def client(cached_store_for_app):
     from starlette.testclient import TestClient
 
     from dsss.starlette import build_app
 
-    config = dict(data_path=tmp_data_for_app)
-    app = build_app(**config)
+    app = build_app(store=cached_store_for_app)
 
     yield TestClient(app, base_url="https://example.com")

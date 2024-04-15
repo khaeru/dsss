@@ -3,7 +3,10 @@ import sys
 from dataclasses import dataclass, field
 from importlib.metadata import version
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import dsss.store
 
 
 def _version_string() -> str:
@@ -18,11 +21,11 @@ def _version_string() -> str:
 
 @dataclass
 class Config:
+    #: Storage module to use.
+    store: "dsss.store.Store"
+
     # TODO Read from file
     debug: bool = True
-
-    #: Storage module to use.
-    store: Literal["google_cloud_storage", "local"] = "local"
 
     #: Path containing data.
     data_path: Path = field(default_factory=lambda: Path.cwd().joinpath("data"))
