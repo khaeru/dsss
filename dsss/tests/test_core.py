@@ -88,6 +88,19 @@ def test_path1(
     assert 400 != rv.status_code
 
 
+def test_data(client, source):
+    url = "/data/ECB,EXR"
+    # Query succeeds
+    rv = client.get(url)
+    assert 200 == rv.status_code
+
+    # Response can be parsed as SDMX-ML
+    msg = sdmx.read_sdmx(BytesIO(rv.content))
+
+    # Collection has the expected number of entries
+    assert 1 == len(msg.data)
+
+
 @pytest.mark.parametrize("url_class", [sdmx.rest.v21.URL, sdmx.rest.v30.URL])
 @pytest.mark.parametrize(
     "resource_type, count",
