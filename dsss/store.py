@@ -158,19 +158,30 @@ class Store(ABC):
 
     def list(
         self,
-        klass: type,
+        klass: Optional[type] = None,
         maintainer: Optional[str] = None,
         id: Optional[str] = None,
         version: Optional[str] = None,
     ):
         """List keys for :class:`MaintainableArtefacts` matching certain attributes."""
         placeholder = "@@@"
+
+        if klass is None:
+            klass = common.Codelist
+            replace_extra = r"codelist\.Codelist"
+        else:
+            replace_extra = "NotAClass"
+
         obj = klass(
             id=id or placeholder,
             maintainer=common.Agency(id=maintainer or placeholder),
             version=version or placeholder,
         )
-        urn_expr = re.compile(re.escape(sdmx.urn.make(obj)).replace(placeholder, ".*"))
+        urn_expr = re.compile(
+            re.escape(sdmx.urn.make(obj))
+            .replace(placeholder, ".*")
+            .replace(replace_extra, ".*")
+        )
 
         return list(filter(urn_expr.fullmatch, self.iter_keys()))
 
