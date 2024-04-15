@@ -7,6 +7,8 @@ import sdmx
 import sdmx.rest.v21
 import sdmx.rest.v30
 import sdmx.tests.test_rest
+from sdmx.model import common
+from sdmx.rest.common import Resource
 
 
 def test_index(client):
@@ -84,3 +86,83 @@ def test_path1(
 
     # Expected status code
     assert 400 != rv.status_code
+
+
+@pytest.mark.parametrize("url_class", [sdmx.rest.v21.URL, sdmx.rest.v30.URL])
+@pytest.mark.parametrize(
+    "resource_type, count",
+    (
+        # ("actualconstraint", 0),
+        ("agencyscheme", 3),
+        # ("allowedconstraint", 0),
+        # ("attachementconstraint", 0),
+        # ("availableconstraint", 0),
+        ("categorisation", 5),
+        ("categoryscheme", 3),
+        ("codelist", 86),
+        ("conceptscheme", 11),
+        # ("contentconstraint", 0),
+        # ("customtypescheme", 0),
+        # ("data", 0),
+        # ("dataconsumerscheme", 0),
+        ("dataflow", 677),
+        # ("dataproviderscheme", 0),
+        ("datastructure", 1),
+        # ("hierarchicalcodelist", 0),
+        # ("metadata", 0),
+        # ("metadataflow", 0),
+        # ("metadatastructure", 0),
+        # ("namepersonalisationscheme", 0),
+        # ("organisationscheme", 0),
+        # ("organisationunitscheme", 0),
+        # ("process", 0),
+        # ("provisionagreement", 0),
+        # ("reportingtaxonomy", 0),
+        # ("rulesetscheme", 0),
+        # ("schema", 0),
+        # ("structure", 0),
+        # ("structureset", 0),
+        # ("transformationscheme", 0),
+        # ("userdefinedoperatorscheme", 0),
+        # ("vtlmappingscheme", 0),
+    ),
+)
+def test_structure_all(client, source, url_class, resource_type, count) -> None:
+    from sdmx.model.v21 import get_class
+
+    # Identify the resource and artefact class
+    resource = Resource[resource_type]
+    klass = get_class(resource)
+
+    # Construct the URL
+    url = url_class(source, resource, agency_id="ALL").join()
+
+    # Query succeeds
+    rv = client.get(url)
+    assert 200 == rv.status_code
+
+    # Response can be parsed as SDMX-ML
+    msg = sdmx.read_sdmx(BytesIO(rv.content))
+
+    # Collection has the expected number of entries
+    assert count == len(msg.objects(klass))
+
+
+@pytest.mark.parametrize(
+    "url, count",
+    (
+        ("/codelist/ALL/all/latest", 86),
+        ("/codelist/FR1/all/latest", 7),
+        ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
+    ),
+)
+def test_structure(client, source, url, count):
+    # Query succeeds
+    rv = client.get(url)
+    assert 200 == rv.status_code
+
+    # Response can be parsed as SDMX-ML
+    msg = sdmx.read_sdmx(BytesIO(rv.content))
+
+    # Collection has the expected number of entries
+    assert count == len(msg.objects(common.Codelist))

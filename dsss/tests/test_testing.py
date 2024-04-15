@@ -27,4 +27,5 @@ import pytest
     ),
 )
 def test_cached_store_for_app0(cached_store_for_app, agency_id, count) -> None:
+    # NB Use <= to allow for additions to specimens; == to identify/update values
     assert count <= len(cached_store_for_app.list(maintainer=agency_id))
