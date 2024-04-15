@@ -2,13 +2,14 @@ from typing import TYPE_CHECKING, List, Mapping, Tuple
 
 import sdmx
 from sdmx.format import MediaType
+from sdmx.model import common, v21
 from starlette.convertors import Convertor, register_url_convertor
 from starlette.routing import Route
 
-from . import storage
 from .common import (
     SDMXResponse,
     add_footer_text,
+    gen_error_message,
     handle_media_type,
     handle_query_params,
     not_implemented_path,
@@ -90,23 +91,29 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
     footer_text: List[str] = []
 
     # Unpack path parameters
-    resource = "data"
     agency_id, flow_id, version = path_params["flow_ref"]
     key = path_params.get("key", None)
     provider_ref = path_params.get("provider_ref", None)
 
-    # ‘Repository’ of *all* data for this flow
-    repo, cache_key = storage.get(
-        config,
-        f"{agency_id}:{flow_id}-{resource}.xml",
-        (resource, agency_id, flow_id, version, key, provider_ref, query_params),
-    )
+    # Retrieve the DFD
+    # NB Can't handle data without the accompanying DFD/DSD
+    urns = config.store.list(v21.DataflowDefinition, maintainer=agency_id, id=flow_id)
 
-    if not cache_key:
-        add_footer_text(repo, footer_text)
-        return repo
+    if 1 != len(urns):
+        footer_text.append(f"{len(urns)} matches for flow_id={flow_id}")
+        return gen_error_message(404, "\n\n".join(footer_text))
 
-    # Cache miss; file was freshly loaded and must be filtered
+    dfd = config.store.get(urns[0])
+    assert isinstance(dfd, common.BaseDataflow)
+    dsd_id = dfd.structure.id
+
+    message = sdmx.message.DataMessage()
+    ds_out = v21.DataSet(described_by=dfd, structured_by=dfd.structure)
+
+    for urn in config.store.list(common.BaseDataSet, maintainer=agency_id, id=dsd_id):
+        ds = config.store.get(urn)
+        assert isinstance(ds, common.BaseDataSet)
+        ds_out.add_obs(ds.obs)
 
     # Filter
 
@@ -121,6 +128,6 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
     )
     # TODO Attach log messages about not implemented query parameters
 
-    add_footer_text(repo, footer_text)
+    add_footer_text(message, footer_text)
 
-    return repo
+    return message
