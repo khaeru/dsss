@@ -1,13 +1,13 @@
 from typing import TYPE_CHECKING
 
 import sdmx.rest.v30
-from starlette.responses import Response
 from starlette.routing import Route
 
-from .common import handle_query_params
+from .common import gen_error_response, handle_query_params
 
 if TYPE_CHECKING:
     import starlette.requests
+    import starlette.responses
 
 NOT_IMPLEMENTED_QUERY = {"c", "mode", "references_a", "updated_after"}
 
@@ -22,7 +22,9 @@ def get_routes():
     ]
 
 
-async def handle(request: "starlette.requests.Request"):
+async def handle(
+    request: "starlette.requests.Request",
+) -> "starlette.responses.Response":
     qp = handle_query_params(
         sdmx.rest.v30.URL,
         "c mode references_a updated_after",
@@ -31,4 +33,4 @@ async def handle(request: "starlette.requests.Request"):
     )
     del qp
 
-    return Response(status_code=501)
+    return gen_error_response(501)

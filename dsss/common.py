@@ -87,6 +87,10 @@ def gen_error_message(code: int, text: str) -> "sdmx.message.ErrorMessage":
     return msg
 
 
+def gen_error_response(code: int, text: str = "") -> SDMXResponse:
+    return SDMXResponse(gen_error_message(code, text), status_code=code)
+
+
 def handle_media_type(
     supported: List["sdmx.format.MediaType"], value: Optional[str]
 ) -> str:
