@@ -177,6 +177,7 @@ class Store(ABC):
         urn_expr = re.compile(
             re.escape(sdmx.urn.make(obj))
             .replace(placeholder, ".*")
+            .replace("Definition", "(Definition)?")
             .replace(replace_extra, ".*")
         )
 
