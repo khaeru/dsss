@@ -3,18 +3,17 @@ from typing import TYPE_CHECKING, List, Mapping
 
 import sdmx
 from sdmx.format import MediaType
+from sdmx.model.v21 import get_class
 from sdmx.rest.common import Resource
 from starlette.convertors import Convertor, register_url_convertor
-from starlette.responses import Response
 from starlette.routing import Route
 
-from . import storage
 from .common import (
     SDMXResponse,
     add_footer_text,
+    gen_error_message,
     handle_media_type,
     handle_query_params,
-    not_implemented_path,
 )
 
 if TYPE_CHECKING:
@@ -71,72 +70,35 @@ def get_structures(
 
     resource = path_params["resource_type"]
     agency_id = path_params["agency_id"]
-    resource_id = path_params.get("resource_id", "all")
-    version = path_params.get("version", "all")
-    item_id = "all"
-
-    if agency_id == "all":
-        # Determine the list of all providers being served
-        agency_ids = list(
-            map(lambda p: p.name.split("-")[0], storage.glob("*-structure.xml"))
-        )
-
-        if len(agency_ids) > 1:
-            raise NotImplementedError("Combine structures from ≥2 providers")
-
-        # Use the first provider
-        agency_id = agency_ids[0]
-
-    # ‘Repository’ of *all* structures
-    repo, cache_key = storage.get(
-        config,
-        f"{agency_id}-structure.xml",
-        (resource, agency_id, resource_id, version, item_id, query_params),
-    )
-
-    if not cache_key:
-        add_footer_text(repo, footer_text)
-        return repo
-
-    # Cache miss; file was freshly loaded and must be filtered
-
-    # Filtered message
-    msg = sdmx.message.StructureMessage()
+    resource_id = path_params.get("resource_id")
+    version = path_params.get("version")
 
     # sdmx.model class for the resource
-    cls = sdmx.model.v21.get_class(resource)
+    klass = get_class(resource)
 
-    if cls is None:
-        footer_text.append(f"resource={repr(resource)}")
-        return Response(footer_text, status_code=501)
+    if klass is None:
+        footer_text.append(f"resource={resource!r}")
+        return gen_error_message(501, "\n\n".join(footer_text))
 
-    # Source and target collections
-    collection = repo.objects(cls)
-    target = msg.objects(cls)
+    message = sdmx.message.StructureMessage()
 
-    if collection is None:
-        return Response(footer_text, status_code=501)
+    for urn in config.store.list(
+        klass,
+        maintainer=None if agency_id == "ALL" else agency_id,
+        id=None if resource_id in ("all", None) else resource_id,
+        # TODO Actually honour "+"/"latest"
+        version=None if version in ("+", "latest", None) else version,
+    ):
+        obj = config.store.get(urn)
+        message.objects(type(obj))[urn.split("=")[-1]] = obj
 
-    # Filter
+    if all(len(message.objects(k)) == 0 for _, k in message.iter_collections()):
+        return gen_error_message(404, "\n\n".join(footer_text))
 
-    # Warn about filtering features not implemented yet
-    footer_text.extend(not_implemented_path(dict(version="latest"), version=version))
     # TODO Attach log messages about not implemented query parameters
+    add_footer_text(message, footer_text)
 
-    if resource_id == "all":
-        # Copy all object
-        target.update(collection)
-    else:
-        try:
-            # Copy a single object
-            getattr(msg, resource)[resource_id] = collection[resource_id]
-        except KeyError:
-            # Not found
-            return Response(footer_text, status_code=404)
-
-    add_footer_text(msg, footer_text)
-
-    return msg
+    return message
 
 
 async def handle(request: "starlette.requests.Request"):
