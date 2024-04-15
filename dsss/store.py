@@ -134,7 +134,8 @@ class Store(ABC):
 
     @key.register
     def _key_ds(self, obj: common.BaseDataSet):
-        parts0: List[str] = [type(obj).__name__, _maintainer_id(obj)]
+        assert obj.structured_by
+        parts0: List[str] = [type(obj).__name__, obj.structured_by.id]
         parts1 = [o.dimension for o in obj.obs]
 
         hashed_parts = blake2s(pickle.dumps(parts1), digest_size=8)
