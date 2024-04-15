@@ -162,27 +162,34 @@ class Store(ABC):
         version: Optional[str] = None,
     ):
         """List keys for :class:`MaintainableArtefacts` matching certain attributes."""
-        placeholder = "@@@"
-
-        if klass is None:
-            klass = common.Codelist
-            replace_extra = r"codelist\.Codelist"
+        if klass is common.BaseDataSet:
+            assert id
+            pattern = f".*DataSet-{id}-.*"
         else:
-            replace_extra = "NotAClass"
+            placeholder = "@@@"
 
-        obj = klass(
-            id=id or placeholder,
-            maintainer=common.Agency(id=maintainer or placeholder),
-            version=version or placeholder,
-        )
-        urn_expr = re.compile(
-            re.escape(sdmx.urn.make(obj))
-            .replace(placeholder, ".*")
-            .replace("Definition", "(Definition)?")
-            .replace(replace_extra, ".*")
-        )
+            if klass is None:
+                klass = common.Codelist
+                replace_extra = r"codelist\.Codelist"
+            else:
+                replace_extra = "NotAClass"
 
-        return list(filter(urn_expr.fullmatch, self.iter_keys()))
+            obj = klass(
+                id=id or placeholder,
+                maintainer=common.Agency(id=maintainer or placeholder),
+                version=version or placeholder,
+            )
+
+            pattern = (
+                re.escape(sdmx.urn.make(obj))
+                .replace(placeholder, ".*")
+                .replace("Definition", "(Definition)?")
+                .replace(replace_extra, ".*")
+            )
+
+        urn_re = re.compile(pattern)
+
+        return list(filter(urn_re.fullmatch, self.iter_keys()))
 
     def list_versions(self, klass: type, maintainer: str, id: str) -> Tuple[str, ...]:
         """Return all stored versions of the :class:`.MaintainableArtefact`."""
