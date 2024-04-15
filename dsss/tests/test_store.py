@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import pytest
+import sdmx
 from sdmx.model import common, v21
 
 from dsss.store import DictStore, FlatFileStore, Store, StructuredFileStore
@@ -20,7 +21,7 @@ def objects_and_keys() -> List[Tuple[common.AnnotableArtefact, str]]:
     dsd = v21.DataStructureDefinition(id="DSD", maintainer=a)
     o2 = v21.DataSet(described_by=dfd, structured_by=dsd)
 
-    result.append((o2, "DataSet-NONE-adaa503c71ac9574"))
+    result.append((o2, "DataSet-FOO-adaa503c71ac9574"))
 
     return result
 
@@ -37,6 +38,15 @@ class TestStore:
         if with_tmp_dir:
             args.append(tmp_path_factory.mktemp(klass.__name__))
         return klass(*args)
+
+    def test_key(self, specimen, s) -> None:
+        with specimen("ECB_EXR/1/M.USD.EUR.SP00.A.xml") as f:
+            msg = sdmx.read_sdmx(f)
+
+        k = s.key(msg.data[0])
+
+        # Key contains the ID of the maintainer of the DFD or DSD
+        assert "GenericDataSet-ECB-d8f6df84c6fd4880" == k
 
     def test_set_get(
         self, s, objects_and_keys: List[Tuple[common.AnnotableArtefact, str]]

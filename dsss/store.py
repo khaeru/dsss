@@ -46,6 +46,8 @@ def _maintainer_id(
         result = obj.maintainer
     elif obj.described_by:
         result = obj.described_by.maintainer
+    elif obj.structured_by:
+        result = obj.structured_by.maintainer
     else:
         result = common.Agency(id="NONE")
     return result.id if result else "NONE"
@@ -132,12 +134,7 @@ class Store(ABC):
 
     @key.register
     def _key_ds(self, obj: common.BaseDataSet):
-        parts0: List[str] = [type(obj).__name__]
-        if obj.described_by:
-            parts0.append(obj.described_by.urn or "NONE")
-        else:
-            parts0.append("NONE")
-
+        parts0: List[str] = [type(obj).__name__, _maintainer_id(obj)]
         parts1 = [o.dimension for o in obj.obs]
 
         hashed_parts = blake2s(pickle.dumps(parts1), digest_size=8)
