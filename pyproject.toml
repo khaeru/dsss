@@ -30,7 +30,8 @@ dependencies = [
 [project.optional-dependencies]
 tests = [
   "pytest >= 8",
-  "sdmx1[tests]",
+  "sdmx1[tests]",  # for Jinja2
+  "starlette[full]",  # for httpx
 ]
 
 
