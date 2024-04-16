@@ -58,9 +58,9 @@ def get_routes():
 
     return [
         # SDMX-REST 1.5.0 / SDMX 2.1
-        Route("/data/{flow_ref:flow_ref}", handle),
-        Route("/data/{flow_ref:flow_ref}/{key}", handle),
         Route("/data/{flow_ref:flow_ref}/{key}/{provider_ref}", handle),
+        Route("/data/{flow_ref:flow_ref}/{key}", handle),
+        Route("/data/{flow_ref:flow_ref}", handle),
         # TODO Add SDMX-REST 2.1.0 / SDMX 3.0.0 paths
     ]
 
