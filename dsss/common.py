@@ -134,3 +134,30 @@ def not_implemented_path(defaults, **values):
                 f"Warning: ignored not implemented path part "
                 f"{name}={value} != {repr(defaults[name])}"
             )
+
+
+def update_observation_dimension(message: "sdmx.message.DataMessage") -> None:
+    """Update :attr:`.observation_dimension` of `message`.
+
+    .. todo:: Do this upstream, in sdmx, automatically.
+    """
+    try:
+        # Use the first/only DataSet
+        assert 1 == len(message.data)
+        ds = message.data[0]
+        assert ds.structured_by
+
+        # Use the first observation
+        assert len(ds.obs)
+        o0 = ds.obs[0]
+        assert o0.dimension
+
+        # Identify the dimensions specified per-observation
+        d_a_o = set(o0.dimension.values.keys())
+
+        if 1 == len(d_a_o):
+            # Single dimension-at-observation
+            # Record as an attribute of the DataMessage
+            message.observation_dimension = ds.structured_by.dimensions.get(d_a_o.pop())
+    except (AssertionError,):
+        pass
