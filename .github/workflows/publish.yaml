@@ -1,0 +1,20 @@
+name: Build package / publish
+
+on:
+  pull_request:  # Check that package can be built even on PRs
+    branches: [ main ]
+  push:
+    branches: [ main ]
+    tags: [ "v*" ]
+  release:
+    types: [ published ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    uses: iiasa/actions/.github/workflows/publish.yaml@main
+    secrets:
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
