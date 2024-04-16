@@ -105,13 +105,14 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
         return gen_error_message(404, "\n\n".join(footer_text))
 
     dfd = config.store.get(urns[0])
+    dsd = config.store.resolve(dfd, "structure")
     assert isinstance(dfd, common.BaseDataflow)
-    dsd_id = dfd.structure.id
+    assert isinstance(dsd, common.BaseDataStructureDefinition)
 
-    message = sdmx.message.DataMessage()
-    ds_out = v21.DataSet(described_by=dfd, structured_by=dfd.structure)
+    ds_out = v21.DataSet(described_by=dfd, structured_by=dsd)
+    message = sdmx.message.DataMessage(data=[ds_out])
 
-    for urn in config.store.list(common.BaseDataSet, maintainer=agency_id, id=dsd_id):
+    for urn in config.store.list(common.BaseDataSet, maintainer=agency_id, id=dsd.id):
         ds = config.store.get(urn)
         assert isinstance(ds, common.BaseDataSet)
         ds_out.add_obs(ds.obs)
