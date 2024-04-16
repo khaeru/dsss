@@ -4,28 +4,46 @@
 A rudimentary implementation of the `SDMX REST web service <https://github.com/sdmx-twg/sdmx-rest>`_ standard.
 
 This code is developed mainly as an aid for prototyping and testing other code that generates SDMX or relies on SDMX REST web services being available.
-It is not intended and likely not ready for production use.
+It is not currently intended and likely not ready for production use.
+
+Implementation
+==============
+
+The package depends only on:
+
+- `sdmx1 <https://github.com/khaeru/sdmx>`_ —for the SDMX Information Model, file formats, URLs, URNs, and more.
+- `starlette <https://www.starlette.io>`_ —as a base web service framework.
+
+It provides a ``Store`` class and subclasses for storing the structures and data to be served by an instance.
+
+
+Usage
+=====
 
 Run a local server
-==================
+------------------
 
-1. ``git clone git@github.com:khaeru/dsss.git && cd dsss``
+1. Install the package and `uvicorn <https://www.starlette.io/#installation>`_ or another ASGI server::
 
-2. Create a directory ``data`` in the repo root and add files to be used to serve requests:
+    git clone git@github.com:khaeru/dsss.git
+    cd dsss
+    pip install . uvicorn
 
-   - 1 or more files containing SDMX structure messages, named e.g. ``AGENCY-structure.xml``, where AGENCY is the ID of an agency that is an SDMX data provider.
-     This single file contains all possible structures provided by AGENCY, to be filtered per the request.
-   - 0 or more files containing SDMX (meta)data messages, named e.g. ``AGENCY:FLOW1-data.xml`` or ``AGENCY:FLOW2-metadata.xml``, where FLOW1/2 is the ID of a (meta)data flow definition, and -data or -metadata indicates the contents.
-     Each file contains all possible (meta)data within the given (meta)dataflow, to be filtered per the request.
+   The package is not yet published on PyPI.
+
+2. Indicate the directory containing stored structures and data::
+
+    export DSSS_STORE=/path/to/store
+
+   This directory should be laid out as a ``StructuredFileStore`` (not yet documented).
 
 3. Run::
 
-    pip install --editable .
-    FLASK_APP=. dsss debug
+    uvicorn --factory dsss:build_app
 
    The output will include a line like:
 
-    * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
+    * Running on http://127.0.0.1:8000/ (Press CTRL+C to quit)
 
 4. Open a browser or use `curl` on the terminal to query this server::
 
@@ -34,44 +52,44 @@ Run a local server
 Deploy to Google App Engine
 ===========================
 
-At minimum, this requires a file ``app.yaml`` containing:
+Not currently supported.
 
-.. code-block:: yaml
+..
+   At minimum, this requires a file ``app.yaml`` containing:
 
-   runtime: python39
-   entrypoint: gunicorn -b :$PORT dsss:serve
+   .. code-block:: yaml
 
-and a file ``requirements.txt`` containing:
+      runtime: python39
+      entrypoint: gunicorn -b :$PORT dsss:serve
 
-.. code-block::
+   and a file ``requirements.txt`` containing:
 
-   git+git://github.com/khaeru/dsss#egg=dsss
-   gunicorn
+   .. code-block::
 
-Then (with the `Google Cloud SDK <https://cloud.google.com/sdk/docs/install>`_ installed and configured) run::
+      git+git://github.com/khaeru/dsss#egg=dsss
+      gunicorn
 
-    gcloud app deploy
+   Then (with the `Google Cloud SDK <https://cloud.google.com/sdk/docs/install>`_ installed and configured) run::
 
+       gcloud app deploy
 
 Roadmap
 =======
 
-For a 1.0 release, the code will _tolerate_ all the queries possible using the `SDMX REST cheat sheet <https://raw.githubusercontent.com/sdmx-twg/sdmx-rest/master/v2_1/ws/rest/docs/rest_cheat_sheet.pdf>`_.
-Thus:
+For a 1.0 release, the code will *tolerate* all the queries possible using the `SDMX REST cheat sheet <https://github.com/sdmx-twg/sdmx-rest/blob/master/doc/rest_cheat_sheet.pdf>`_.
+‘Tolerate’ means that DSSS will respond to them with an SDMX-ML message, although possibly an SDMX-ML ErrorMessage with code 501 indicating the given feature(s) are not implemented.
 
-- [x] Respect optional path parts.
-- [x] Return appropriate error messages for unavailable resources.
-- [x] Filter structures (partial implementation).
-- [ ] Filter data (partial implementation).
-- [x] Return footer or other messages when the response is not fully filtered per path and query parameters.
-- [x] Provide `dsss`-specific instructions for deployment, with reference to the `Flask docs <https://flask.palletsprojects.com/en/2.0.x/deploying/>`_.
+Thus the code will:
 
-After 1.0:
+- Respect optional path parts. (done)
+- Return appropriate error messages for unavailable resources. (done)
+- Filter structures (partial implementation). (done)
+- Filter data (partial implementation). (done)
+- Return footer or other messages when the response is not fully filtered per path and query parameters. (done)
+- Provide documentation for example deployment.
+- Include an initial test suite.
+
+After 1.0, some features to be added include:
 
 - Provide a complete test suite.
-- Use Flask's `logging capabilities <https://flask.palletsprojects.com/en/2.0.x/logging/>`_.
-- Integrate URL construction in `sdmx1 <https://github.com/khaeru/sdmx`_.
-
-  Flask provides the `url_for() <https://flask.palletsprojects.com/en/2.0.x/api/#flask.url_for>`_ function and underying machinery to construct URLs within the routing scheme for an application.
-  This mirrors the code in `sdmx1.Client._request_from_args() <https://github.com/khaeru/sdmx/blob/main/sdmx/client.py#L161>`_, about 100 lines.
-  Consider ways to provide common code in ``sdmx1`` and reuse that code in DSSS, or vice versa.
+- Provide logging.
