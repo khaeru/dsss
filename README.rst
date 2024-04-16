@@ -1,7 +1,13 @@
 ``dsss``: a dead-simple SDMX server
 ***********************************
-|gha|
+|pypi| |gha| |codecov|
 
+.. |pypi| image:: https://img.shields.io/pypi/v/dsss.svg
+   :target: https://pypi.org/project/dsss
+   :alt: PyPI version badge
+.. |codecov| image:: https://codecov.io/gh/khaeru/dsss/graph/badge.svg?token=IL5RTND3E7
+   :target: https://codecov.io/gh/khaeru/dsss
+   :alt: Codecov test coverage badge
 .. |gha| image:: https://github.com/khaeru/dsss/actions/workflows/pytest.yaml/badge.svg
    :target: https://github.com/khaeru/dsss/actions/workflows/pytest.yaml
    :alt: Status badge for the "pytest" continuous testing workflow
