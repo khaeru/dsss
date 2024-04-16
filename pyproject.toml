@@ -4,28 +4,34 @@ requires = ["build", "setuptools-scm"]
 [project]
 dynamic = ["version"]
 name = "dsss"
-description = "Dead Simple SDMX Server"
+description = "Dead-Simple SDMX Server"
 authors = [{ name = "dsss contributors" }]
 maintainers = [
-    { name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name" },
+  { name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name" },
 ]
 readme = "README.rst"
 classifiers = [
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.8"
 dependencies = [
     "sdmx1",
     "starlette",
 ]
+
+[project.optional-dependencies]
+tests = [
+  "pytest >= 8",
+]
+
 
 [project.urls]
 homepage = "https://github.com/khaeru/dsss"
