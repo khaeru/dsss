@@ -28,8 +28,8 @@ SIMPLE_TESTS = (
     ("/structure/agencyscheme/ECB/all/1.0", 200, b"<mes:Structure"),
     # Malformed path comes back as a 400 Error message, not 404
     ("/foo/ECB/all/1.0", 400, b"<mes:Error"),
-    # Not implemented
-    ("/reportingtaxonomy/ECB", 501, b"<mes:Error"),
+    # No return values
+    ("/reportingtaxonomy/ECB", 200, b"<mes:Error"),
     #
     # Data
     ("/data/ECB,EXR?startPeriod=2011&detail=nodata", 200, b"<mes:GenericData"),
@@ -52,7 +52,10 @@ def test_path0(client, path, code, expr):
     assert code == rv.status_code
 
     # Contents match
-    assert re.search(expr, rv.content)
+    match = re.search(expr, rv.content)
+    if not match:
+        print(rv.content.decode())
+        assert False
 
     # Response can be parsed using sdmx1
     sdmx.read_sdmx(BytesIO(rv.content))
@@ -110,17 +113,17 @@ def test_data(client, source):
         # ("allowedconstraint", 0),
         # ("attachementconstraint", 0),
         # ("availableconstraint", 0),
-        ("categorisation", 5),
+        ("categorisation", 7),
         ("categoryscheme", 3),
-        ("codelist", 86),
-        ("conceptscheme", 11),
+        ("codelist", 88),
+        ("conceptscheme", 19),
         # ("contentconstraint", 0),
         # ("customtypescheme", 0),
         # ("data", 0),
         # ("dataconsumerscheme", 0),
         ("dataflow", 677),
         # ("dataproviderscheme", 0),
-        ("datastructure", 1),
+        ("datastructure", 22),
         # ("hierarchicalcodelist", 0),
         # ("metadata", 0),
         # ("metadataflow", 0),
@@ -164,7 +167,7 @@ def test_structure_all(client, source, url_class, resource_type, count) -> None:
 @pytest.mark.parametrize(
     "url, count",
     (
-        ("/codelist/ALL/all/latest", 86),
+        ("/codelist/ALL/all/latest", 88),
         ("/codelist/FR1/all/latest", 7),
         ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
     ),

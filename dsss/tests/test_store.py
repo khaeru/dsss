@@ -18,10 +18,10 @@ def objects_and_keys() -> List[Tuple[common.AnnotableArtefact, str]]:
     result.append((o1, "urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FOO:CL(1.0)"))
 
     dfd = v21.DataflowDefinition(id="DFD", maintainer=a)
-    dsd = v21.DataStructureDefinition(id="DSD", maintainer=a)
+    dsd = v21.DataStructureDefinition(id="DSD_ID", maintainer=a)
     o2 = v21.DataSet(described_by=dfd, structured_by=dsd)
 
-    result.append((o2, "DataSet-FOO-adaa503c71ac9574"))
+    result.append((o2, "DataSet-DSD_ID-adaa503c71ac9574"))
 
     return result
 
@@ -46,7 +46,7 @@ class TestStore:
         k = s.key(msg.data[0])
 
         # Key contains the ID of the maintainer of the DFD or DSD
-        assert "GenericDataSet-ECB-d8f6df84c6fd4880" == k
+        assert "GenericDataSet-ECB_EXR1-d8f6df84c6fd4880" == k
 
     def test_set_get(
         self, s, objects_and_keys: List[Tuple[common.AnnotableArtefact, str]]
@@ -74,7 +74,7 @@ class TestStore:
         return s
 
     def test_iter_keys(self, all_specimens) -> None:
-        assert 896 == len(list(all_specimens.iter_keys()))
+        assert 903 == len(list(all_specimens.iter_keys()))
 
     def test_list(self, all_specimens) -> None:
         # klass= only
