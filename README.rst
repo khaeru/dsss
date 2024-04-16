@@ -93,12 +93,14 @@ Thus the code will:
 - Return footer or other messages when the response is not fully filtered per path and query parameters. (done)
 - Provide documentation in the README for example deployment.
 - Include an initial test suite.
+- Support, and be tested on, Ubuntu Linux and Python ≥ 3.11
 
-After 1.0, some features to be added include:
+After 1.0, some features that will likely be added include:
 
 - Provide complete documentation.
 - Provide a complete test suite.
 - Provide logging.
+- Support all maintained Python versions, macOS, and Windows.
 
 License
 =======
