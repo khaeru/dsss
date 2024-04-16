@@ -6,7 +6,6 @@ import re
 from abc import ABC, abstractmethod
 from functools import singledispatchmethod
 from hashlib import blake2s
-from itertools import chain
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
 
@@ -357,10 +356,11 @@ class FileStore(Store):
         msg = sdmx.read_sdmx(path)
 
         if isinstance(msg, sdmx.message.StructureMessage):
-            result = next(
-                chain(*[msg.objects(cls).values() for _, cls in msg.iter_collections()])
-            )
-            return result
+            for _, cls in msg.iter_collections():
+                for obj in msg.objects(cls).values():
+                    if not obj.is_external_reference:
+                        return obj
+            raise ValueError
         elif isinstance(msg, sdmx.message.DataMessage):
             return msg.data[0]
         else:
@@ -408,7 +408,8 @@ class StructuredFileStore(FileStore):
     def path_for(self, obj, key) -> Path:
         if obj is None:
             candidates = list(self.path.rglob(_short_urn(key)))
-            assert 1 == len(candidates)
+            if len(candidates) != 1:
+                raise KeyError(f"{len(candidates)} matches for {key}: {candidates}")
             return candidates[0]
         else:
             result = self.path.joinpath(_maintainer_id(obj), _short_urn(key))
