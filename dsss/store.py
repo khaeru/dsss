@@ -14,8 +14,6 @@ import sdmx
 import sdmx.urn
 from sdmx.model import common
 
-from .common import update_observation_dimension
-
 log = logging.getLogger(__name__)
 
 
@@ -377,8 +375,7 @@ class FileStore(Store):
         dm.data.append(obj)
 
         # Update dm.observation_dimension to match the keys of `obj`
-        # TODO Do this upstream, in sdmx, automatically
-        update_observation_dimension(dm)
+        dm.update()
 
         with open(path, "wb") as f:
             f.write(sdmx.to_xml(dm, pretty_print=True))

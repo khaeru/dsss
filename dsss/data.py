@@ -13,7 +13,6 @@ from .common import (
     handle_media_type,
     handle_query_params,
     not_implemented_path,
-    update_observation_dimension,
 )
 
 if TYPE_CHECKING:
@@ -117,9 +116,8 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
         assert isinstance(ds, common.BaseDataSet)
         ds_out.add_obs(ds.obs)
 
-    # Update dm.observation_dimension to match the keys of `obj`
-    # TODO Do this upstream, in sdmx, automatically
-    update_observation_dimension(message)
+    # Update message.observation_dimension to match the keys of `ds_out`
+    message.update()
 
     # Filter
 
