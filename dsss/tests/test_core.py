@@ -91,6 +91,25 @@ def test_path1(
     assert 400 != rv.status_code
 
 
+def test_get_data(cached_store_for_app):
+    from dsss.config import Config
+    from dsss.data import get_data
+
+    config = Config(store=cached_store_for_app)
+
+    result = get_data(
+        config,
+        path_params=dict(
+            flow_ref=["ECB", "EXR", "latest"], key="all", provider_ref="all"
+        ),
+        query_params=dict(),
+    )
+
+    assert 1 == len(result.data)
+    ds = result.data[0]
+    assert 252 == len(ds)
+
+
 def test_data(client, source):
     url = "/data/ECB,EXR"
     # Query succeeds
