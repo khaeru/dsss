@@ -30,6 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 tests = [
   "pytest >= 8",
+  "sdmx1[tests]",
 ]
 
 
