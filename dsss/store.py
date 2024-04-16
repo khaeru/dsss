@@ -37,6 +37,14 @@ def increment_version(
     ) + (f"dev{int(v.dev or 0) + int(dev or 0)}" if (dev or v.dev is not None) else "")
 
 
+def _normalize(key: str) -> str:
+    """Normalize URNs.
+
+    - Handle "…DataFlow=…" vs. "…DataFlowDefinition=…" in URNs; prefer the former.
+    """
+    return key.replace("Definition=", "=")
+
+
 def _maintainer_id(
     obj: Union[common.MaintainableArtefact, common.BaseDataSet],
 ) -> str:
@@ -61,7 +69,7 @@ _SHORT_URN_EXPR = re.compile(r"(urn:sdmx:org\.sdmx\.infomodel\.[^\.]+\.)?(?P<sho
 def _short_urn(value: str) -> str:
     m = _SHORT_URN_EXPR.match(value)
     assert m
-    return m.group("short")
+    return _normalize(m.group("short"))
 
 
 class Store(ABC):
@@ -146,11 +154,12 @@ class Store(ABC):
     @key.register
     def _key_ma(self, obj: common.MaintainableArtefact):
         if obj.urn:
-            return obj.urn
+            result = obj.urn
         else:
             if obj.maintainer is None:
                 obj.maintainer = common.Agency(id="UNKNOWN")
-            return sdmx.urn.make(obj)
+            result = sdmx.urn.make(obj)
+        return _normalize(result)
 
     @abstractmethod
     def iter_keys(self) -> Iterable[str]:
