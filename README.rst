@@ -1,5 +1,10 @@
 ``dsss``: a dead-simple SDMX server
 ***********************************
+|gha|
+
+.. |gha| image:: https://github.com/khaeru/dsss/actions/workflows/pytest.yaml/badge.svg
+   :target: https://github.com/khaeru/dsss/actions/workflows/pytest.yaml
+   :alt: Status badge for the "pytest" continuous testing workflow
 
 A rudimentary implementation of the `SDMX REST web service <https://github.com/sdmx-twg/sdmx-rest>`_ standard.
 
@@ -86,10 +91,22 @@ Thus the code will:
 - Filter structures (partial implementation). (done)
 - Filter data (partial implementation). (done)
 - Return footer or other messages when the response is not fully filtered per path and query parameters. (done)
-- Provide documentation for example deployment.
+- Provide documentation in the README for example deployment.
 - Include an initial test suite.
 
 After 1.0, some features to be added include:
 
+- Provide complete documentation.
 - Provide a complete test suite.
 - Provide logging.
+
+License
+=======
+
+Copyright 2014–2024, `dsss developers <https://github.com/khaeru/dsss/graphs/contributors>`_
+
+Licensed under the GNU General Public License, Version 3.0 (the “License”); you may not use these files except in compliance with the License.
+You may obtain a copy of the License:
+
+- from the file LICENSE included with the source code, or
+- at https://www.gnu.org/licenses/gpl-3.0.en.html
