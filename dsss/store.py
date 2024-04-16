@@ -8,7 +8,7 @@ from functools import singledispatchmethod
 from hashlib import blake2s
 from itertools import chain
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import packaging.version
 import sdmx
@@ -221,6 +221,15 @@ class Store(ABC):
             next_version = increment_version("0.0.0", **kwargs)
 
         obj.version = next_version
+
+    def resolve(self, obj, attr: str) -> "common.MaintainableArtefact":
+        """Resolve an external reference in a named `attr` of `obj`."""
+        existing = getattr(obj, attr)
+        if not existing.is_external_reference:
+            return existing
+        new_attr = self.get(existing.urn)
+        setattr(obj, attr, new_attr)
+        return cast(common.MaintainableArtefact, new_attr)
 
     @singledispatchmethod
     def update_from(self, obj, **kwargs):
