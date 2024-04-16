@@ -20,7 +20,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "sdmx1",
+    "sdmx1 >= 2.14.0",
     "starlette",
 ]
 
