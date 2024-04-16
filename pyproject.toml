@@ -31,7 +31,6 @@ tests = [
   "starlette[full]",  # for httpx
 ]
 
-
 [project.urls]
 homepage = "https://github.com/khaeru/dsss"
 
@@ -46,3 +45,5 @@ mccabe.max-complexity = 10
 
 [tool.setuptools.packages]
 find = {}
+
+[tool.setuptools_scm]
