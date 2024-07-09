@@ -40,6 +40,11 @@ homepage = "https://github.com/khaeru/dsss"
 module = ["google.cloud"]
 ignore_missing_imports = true
 
+[tool.pytest.ini_options]
+# - Report coverage only for the current package.
+# - By default, do not generate any coverage reports.
+addopts = "--cov=dsss --cov-report="
+
 [tool.ruff.lint]
 select = ["C9", "E", "F", "I", "W"]
 mccabe.max-complexity = 10

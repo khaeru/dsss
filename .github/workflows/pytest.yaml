@@ -55,7 +55,7 @@ jobs:
       env:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: |
-        pytest \
+        pytest dsss \
           -ra --color=yes --verbose \
           --cov-report=xml \
           --numprocesses auto
