@@ -257,15 +257,12 @@ class Store(ABC):
 
     @update_from.register
     def _update_from_sm(self, msg: sdmx.message.StructureMessage):
-        for name, cls_ in msg.iter_collections():
-            for id_, obj in msg.objects(cls_).items():
-                if obj.is_external_reference:
-                    continue
-                try:
-                    self.set(obj)
-                except Exception as e:
-                    log.warning(f"Could not store {type(obj).__name__} {obj}: {e}")
-                    log.debug(repr(e))
+        for obj in msg.iter_objects(external_reference=False):
+            try:
+                self.set(obj)
+            except Exception as e:
+                log.warning(f"Could not store {type(obj).__name__} {obj}: {e}")
+                log.debug(repr(e))
 
 
 class DictStore(Store):
@@ -354,10 +351,8 @@ class FileStore(Store):
         msg = sdmx.read_sdmx(path)
 
         if isinstance(msg, sdmx.message.StructureMessage):
-            for _, cls in msg.iter_collections():
-                for obj in msg.objects(cls).values():
-                    if not obj.is_external_reference:
-                        return obj
+            for obj in msg.iter_objects(external_reference=False):
+                return obj
             raise ValueError
         elif isinstance(msg, sdmx.message.DataMessage):
             return msg.data[0]
