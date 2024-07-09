@@ -3,6 +3,8 @@
 API reference
 *************
 
+.. automodule:: dsss
+
 .. autosummary::
    :toctree: _api
    :recursive:
