@@ -5,7 +5,7 @@ requires = ["build", "setuptools-scm"]
 dynamic = ["version"]
 name = "dsss"
 description = "Dead-Simple SDMX Server"
-authors = [{ name = "dsss contributors" }]
+authors = [{ name = "DSSS contributors" }]
 maintainers = [
   { name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name" },
 ]
