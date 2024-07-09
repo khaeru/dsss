@@ -92,7 +92,8 @@ def get_structures(
         obj = config.store.get(urn)
         message.objects(type(obj))[urn.split("=")[-1]] = obj
 
-    if all(len(message.objects(k)) == 0 for _, k in message.iter_collections()):
+    N = len(list(message.iter_objects()))
+    if N == 0:
         return gen_error_message(404, "\n\n".join(footer_text))
 
     # TODO Attach log messages about not implemented query parameters
