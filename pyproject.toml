@@ -35,6 +35,16 @@ tests = [
 [project.urls]
 homepage = "https://github.com/khaeru/dsss"
 
+[tool.coverage.report]
+exclude_also = [
+  # Imports only used by type checkers
+  "if TYPE_CHECKING:",
+  # Currently not implemented == not tested. In the future, not
+  # implemented behaviour will be tested to fail in specific ways.
+  "raise NotImplementedError",
+]
+omit = ["dsss/storage/google_cloud_storage.py"]
+
 [[tool.mypy.overrides]]
 # Packages for which no type hints are available
 module = ["google.cloud"]
