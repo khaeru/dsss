@@ -5,6 +5,8 @@ DSSS: a dead-simple SDMX server
    :maxdepth: 2
    :caption: Contents:
 
+   api
+
 Usage
 =====
 
