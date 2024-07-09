@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 tests = [
   "pytest >= 8",
+  "pytest-cov",
   "sdmx1[tests]",  # for Jinja2
   "starlette[full]",  # for httpx
 ]
