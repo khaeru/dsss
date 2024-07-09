@@ -6,6 +6,7 @@ DSSS: a dead-simple SDMX server
    :caption: Contents:
 
    api
+   whatsnew
 
 Usage
 =====
