@@ -3,3 +3,17 @@ What's new?
 
 Initial release
 ===============
+
+In this initial release, :mod:`dsss` *tolerates* all the queries possible using the `SDMX REST cheat sheet <https://github.com/sdmx-twg/sdmx-rest/blob/master/doc/rest_cheat_sheet.pdf>`_.
+‘Tolerate’ means that DSSS will respond to every possible query with an SDMX-ML message, although possibly an SDMX-ML ErrorMessage with code 501 indicating the given feature(s) are not implemented.
+
+Thus the code:
+
+- Respects optional path parts.
+- Returns appropriate error messages for unavailable resources.
+- Filters structures (partial implementation).
+- Filters data (partial implementation).
+- Returns footer or other messages when the response is not fully filtered per path and query parameters.
+- Provides :doc:`documentation local deployment <usage>`.
+- Includes an initial test suite.
+- Supports, and is tested on, Ubuntu Linux and Python ≥ 3.11.
