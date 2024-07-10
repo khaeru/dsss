@@ -56,11 +56,11 @@ License
 
 Copyright 2014–2024, `dsss developers <https://github.com/khaeru/dsss/graphs/contributors>`_
 
-Licensed under the GNU General Public License, Version 3.0 (the “License”); you may not use these files except in compliance with the License.
+Licensed under the GNU Affero General Public License, Version 3.0 (the “License”); you may not use these files except in compliance with the License.
 You may obtain a copy of the License:
 
 - from the file LICENSE included with the source code, or
-- at https://www.gnu.org/licenses/gpl-3.0.en.html
+- at https://www.gnu.org/licenses/agpl-3.0.en.html
 
 
 Indices and tables
