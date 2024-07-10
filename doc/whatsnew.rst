@@ -1,8 +1,11 @@
 What's new?
 ***********
 
-Initial release
-===============
+.. Next release
+.. ============
+
+v1.0.0 (2024-07-10)
+===================
 
 In this initial release, :mod:`dsss` *tolerates* all the queries possible using the `SDMX REST cheat sheet <https://github.com/sdmx-twg/sdmx-rest/blob/master/doc/rest_cheat_sheet.pdf>`_.
 ‘Tolerate’ means that DSSS will respond to every possible query with an SDMX-ML message, although possibly an SDMX-ML ErrorMessage with code 501 indicating the given feature(s) are not implemented.
