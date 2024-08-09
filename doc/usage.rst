@@ -6,11 +6,7 @@ Run a local server
 
 1. Install the package and `uvicorn <https://www.starlette.io/#installation>`_ or another ASGI server::
 
-    git clone git@github.com:khaeru/dsss.git
-    cd dsss
-    pip install . uvicorn
-
-   The package is not yet published on PyPI.
+    pip install dsss uvicorn
 
 2. Indicate the directory containing stored structures and data::
 

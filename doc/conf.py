@@ -16,7 +16,14 @@ author = "DSSS contributors"
 templates_path = ["_templates"]
 extensions = [
     "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
 ]
+
+rst_prolog = """
+.. role:: py(code)
+   :language: python
+"""
 
 # -- Options for HTML output -----------------------------------------------------------
 
@@ -25,3 +32,18 @@ html_static_path = ["_static"]
 # -- Options for sphinx.ext.autosummary ------------------------------------------------
 
 autosummary_generate = True
+
+# -- Options for sphinx.ext.extlinks ---------------------------------------------------
+
+extlinks = {
+    "issue": ("https://github.com/khaeru/dsss/issues/%s", "#%s"),
+    "pull": ("https://github.com/khaeru/dsss/pull/%s", "PR #%s"),
+    "gh-user": ("https://github.com/%s", "@%s"),
+}
+
+# -- Options for sphinx.ext.intersphinx ------------------------------------------------
+
+intersphinx_mapping = {
+    "py": ("https://docs.python.org/3", None),
+    "sdmx": ("https://sdmx1.readthedocs.io/en/stable", None),
+}

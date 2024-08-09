@@ -75,9 +75,26 @@ class Store(ABC):
     :class:`.Store` facilitates use of keys derived from the SDMX Information Model and
     class hierarchy. Currently the following can be stored and retrieved:
 
-    1. :class:`.MaintainableArtefact` → the complete :attr:`.IdentifiableArtefact.urn`.
-    2. :class:`.BaseDataSet` → the :attr`~.IdentifiableArtefact.urn` of the
-       :class:`.BaseDataFlow` and a hash of the :class:`.Observation` keys.
+    1. Value type: :class:`~sdmx.model.common.MaintainableArtefact`.
+
+       Key: The full :attr:`IdentifiableArtefact.urn
+       <sdmx.model.common.IdentifiableArtefact.urn>`.
+
+       Example: :py:`"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FOO:CL(1.0)"`.
+
+    2. Value type: :class:`~sdmx.model.common.BaseDataSet`.
+
+       Key: The :attr:`IdentifiableArtefact.id
+       <sdmx.model.common.IdentifiableArtefact.id>` of the
+       :class:`~sdmx.model.common.BaseDataStructureDefinition` (associated via the
+       :attr:`BaseDataSet.structured_by <sdmx.model.common.BaseDataSet.structured_by>`
+       attribute) and a hash of the :class:`~sdmx.model.common.BaseObservation` keys,
+       joined with a hyphen.
+
+       Example: :py:`"DataSet-DSD_ID-adaa503c71ac9574"`.
+
+       This includes the :mod:`sdmx.model.v21` and :mod:`sdmx.model.v30` subclasses of
+       BaseDataSet, BaseDataflow, and BaseObservation.
 
     Store is abstract with respect to *how* artefacts are stored; subclasses may use
     different methods of local or remote storage.
@@ -95,10 +112,9 @@ class Store(ABC):
 
     The following convenience methods are also provided:
 
-    - :meth:`list ` —list keys for objects matching the given criteria.
+    - :meth:`list` —list keys for objects matching the given criteria.
     - :meth:`update_from` —update multiple objects from a message, file containing a
       message, or directory containing files.
-
     """
 
     @abstractmethod
@@ -169,7 +185,11 @@ class Store(ABC):
         id: Optional[str] = None,
         version: Optional[str] = None,
     ):
-        """List keys for :class:`MaintainableArtefacts` matching certain attributes."""
+        """List keys for :class:`~sdmx.model.common.MaintainableArtefact`.
+
+        Only keys that match the given `klass`, `maintainer`, `id` and/or `version` are
+        returned.
+        """
         if klass is common.BaseDataSet:
             assert id
             pattern = f".*DataSet-{id}-.*"
@@ -200,7 +220,7 @@ class Store(ABC):
         return list(filter(urn_re.fullmatch, self.iter_keys()))
 
     def list_versions(self, klass: type, maintainer: str, id: str) -> Tuple[str, ...]:
-        """Return all stored versions of the :class:`.MaintainableArtefact`."""
+        """Return all versions of a :class:`~sdmx.model.common.MaintainableArtefact`."""
         return tuple(
             sorted(
                 sdmx.urn.match(k)["version"]
@@ -230,6 +250,18 @@ class Store(ABC):
 
     @singledispatchmethod
     def update_from(self, obj, **kwargs):
+        """Update the Store from another `obj`.
+
+        `obj` may be a:
+
+        - :class:`~sdmx.message.DataMessage` —all
+          :class:`~sdmx.model.common.BaseDataSet` in the message are read and stored.
+        - :class:`~sdmx.message.StructureMessage` —all SDMX structures in the message
+          are read and stored.
+        - :class:`pathlib.Path` of an :file:`.xml` file or directory. The given file,
+          or all :file:`.xml` files in the directory, are read, and their contents
+          added.
+        """
         raise NotImplementedError
 
     @update_from.register
@@ -303,8 +335,9 @@ class FileStore(Store):
 
     Each file contains either:
 
-    - a :class:`.DataMessage` with a single :class:`.BaseDataSet`, or
-    - a :class:`.StructureMessage` with a single structure artefact.
+    - a :class:`~sdmx.message.DataMessage` with a single
+      :class:`~sdmx.model.common.BaseDataSet`, or
+    - a :class:`~sdmx.message.StructureMessage` with a single structure artefact.
 
     """
 
@@ -348,6 +381,7 @@ class FileStore(Store):
     def read_message(
         self, path: Path
     ) -> Union[common.MaintainableArtefact, common.BaseDataSet]:
+        """Read a :class:`sdmx.message.Message` from `path` and return its contents."""
         msg = sdmx.read_sdmx(path)
 
         if isinstance(msg, sdmx.message.StructureMessage):
