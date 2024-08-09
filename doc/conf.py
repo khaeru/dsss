@@ -16,6 +16,7 @@ author = "DSSS contributors"
 templates_path = ["_templates"]
 extensions = [
     "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
 ]
 
@@ -31,6 +32,14 @@ html_static_path = ["_static"]
 # -- Options for sphinx.ext.autosummary ------------------------------------------------
 
 autosummary_generate = True
+
+# -- Options for sphinx.ext.extlinks ---------------------------------------------------
+
+extlinks = {
+    "issue": ("https://github.com/khaeru/dsss/issues/%s", "#%s"),
+    "pull": ("https://github.com/khaeru/dsss/pull/%s", "PR #%s"),
+    "gh-user": ("https://github.com/%s", "@%s"),
+}
 
 # -- Options for sphinx.ext.intersphinx ------------------------------------------------
 
