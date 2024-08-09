@@ -33,7 +33,8 @@ tests = [
 ]
 
 [project.urls]
-homepage = "https://github.com/khaeru/dsss"
+Documentation = "https://dsss.readthedocs.io"
+Repository = "https://github.com/khaeru/dsss"
 
 [tool.coverage.report]
 exclude_also = [
