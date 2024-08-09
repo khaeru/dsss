@@ -1,8 +1,10 @@
 What's new?
 ***********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Expand documentation of :class:`.Store` (:pull:`8`).
 
 v1.0.0 (2024-07-10)
 ===================
