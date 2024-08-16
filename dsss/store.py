@@ -469,7 +469,10 @@ class StructuredFileStore(FileStore):
     def iter_keys(self):
         for maintainer in filter(Path.is_dir, self.path.iterdir()):
             for p in maintainer.iterdir():
-                yield self._key_for(p)
+                try:
+                    yield self._key_for(p)
+                except Exception:
+                    log.info(f"Cannot determine key from file name {p!r}")
 
 
 class GitStore(StructuredFileStore):
