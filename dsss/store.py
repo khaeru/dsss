@@ -1,54 +1,36 @@
-"""Local data storage."""
+"""Storage of SDMX artefacts."""
 
 import logging
 import pickle
 import re
+import subprocess
 from abc import ABC, abstractmethod
 from functools import singledispatchmethod
 from hashlib import blake2s
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
-import packaging.version
 import sdmx
+import sdmx.model.version
 import sdmx.urn
 from sdmx.model import common
 
 log = logging.getLogger(__name__)
 
 
-def increment_version(
-    existing: str, major=None, minor=None, micro=None, dev=None
-) -> str:
-    v = packaging.version.parse(existing)
-
-    if major is minor is micro is dev is None:
-        micro = dev = True
-
-    return ".".join(
-        [
-            f"{v.major + int(major or 0)}",
-            f"{v.minor + int(minor or 0)}",
-            f"{v.micro + int(micro or 0)}",
-        ]
-    ) + (f"dev{int(v.dev or 0) + int(dev or 0)}" if (dev or v.dev is not None) else "")
-
-
-def _normalize(key: str) -> str:
-    """Normalize URNs.
-
-    - Handle "…DataFlow=…" vs. "…DataFlowDefinition=…" in URNs; prefer the former.
-    """
-    return key.replace("Definition=", "=")
+def _short_urn(value: str) -> str:
+    return sdmx.urn.normalize(sdmx.urn.shorten(value))
 
 
 def _maintainer_id(
-    obj: Union[common.MaintainableArtefact, common.BaseDataSet],
+    obj: Union[common.MaintainableArtefact, common.BaseDataSet, str],
 ) -> str:
     """Return a maintainer for `obj`.
 
     If `obj` is :class:`.DataSet`, the maintainer of the data flow is used.
     """
+    if isinstance(obj, str):
+        return sdmx.urn.match(sdmx.urn.expand(obj))["agency"]
     if isinstance(obj, common.MaintainableArtefact):
         result = obj.maintainer
     elif obj.described_by:
@@ -58,15 +40,6 @@ def _maintainer_id(
     else:
         result = common.Agency(id="NONE")
     return result.id if result else "NONE"
-
-
-_SHORT_URN_EXPR = re.compile(r"(urn:sdmx:org\.sdmx\.infomodel\.[^\.]+\.)?(?P<short>.*)")
-
-
-def _short_urn(value: str) -> str:
-    m = _SHORT_URN_EXPR.match(value)
-    assert m
-    return _normalize(m.group("short"))
 
 
 class Store(ABC):
@@ -143,12 +116,36 @@ class Store(ABC):
         """
 
     @abstractmethod
+    def iter_keys(self) -> Iterable[str]:
+        """Iterate over stored keys.
+
+        The keys are **not** ordered.
+        """
+
+    @abstractmethod
     def set(self, obj) -> str:
         """Store `obj` and return its key."""
 
     @abstractmethod
     def update(self, obj) -> str:
         """Update `obj` and return its key."""
+
+    # Concrete methods
+    def assign_version(self, obj, **kwargs):
+        """Assign a version to `obj` subsequent to any existing versions.
+
+        See also
+        --------
+        increment_version
+        """
+        versions = self.list_versions(type(obj), obj.maintainer.id, obj.id)
+
+        if versions:
+            next_version = sdmx.model.version.increment(versions[1], **kwargs)
+        else:
+            next_version = sdmx.model.version.increment("0.0.0", **kwargs)
+
+        obj.version = next_version
 
     @singledispatchmethod
     def key(self, obj) -> str:
@@ -172,11 +169,7 @@ class Store(ABC):
             if obj.maintainer is None:
                 obj.maintainer = common.Agency(id="UNKNOWN")
             result = sdmx.urn.make(obj)
-        return _normalize(result)
-
-    @abstractmethod
-    def iter_keys(self) -> Iterable[str]:
-        """Iterate over stored keys."""
+        return sdmx.urn.normalize(result)
 
     def list(
         self,
@@ -227,17 +220,6 @@ class Store(ABC):
                 for k in self.list(klass=klass, maintainer=maintainer, id=id)
             )
         )
-
-    def assign_version(self, obj, **kwargs):
-        """Assign a version to `obj` subsequent to any existing versions."""
-        versions = self.list_versions(type(obj), obj.maintainer.id, obj.id)
-
-        if versions:
-            next_version = increment_version(versions[1], **kwargs)
-        else:
-            next_version = increment_version("0.0.0", **kwargs)
-
-        obj.version = next_version
 
     def resolve(self, obj, attr: str) -> "common.MaintainableArtefact":
         """Resolve an external reference in a named `attr` of `obj`."""
