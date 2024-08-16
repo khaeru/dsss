@@ -476,4 +476,46 @@ class StructuredFileStore(FileStore):
 
 
 class GitStore(StructuredFileStore):
-    """Not implemented."""
+    """A store that uses an underlying Git repository.
+
+    .. todo:: Use GitPython instead.
+    """
+
+    #: URL of a remote Git repository to mirror.
+    remote_url: Optional[str] = None
+
+    # Overrides
+
+    def __init__(self, path: Path, remote_url: Optional[str] = None, **kwargs) -> None:
+        super().__init__(path=path, **kwargs)
+
+        if not self.path.exists():
+            print(f"WARNING: TDC registry not existing in {self.path}")
+            print("To clone, run: tdc registry clone")
+
+        self.remote_url = self.remote_url
+
+    def write_message(self, obj, path):
+        # Write the file
+        super().write_message(obj, path)
+
+        # Add to git, but do not commit
+        # NB if the path is specifically covered by a .gitignore entry, this will
+        #    generate some advice messages but have no effect. See e.g.
+        #    registry/ESTAT/README.
+        # TODO ignore "The following paths are ignored by one of your .gitignore files"
+        self._git("add", str(path.relative_to(self.path)))
+
+        # if self.show_status:
+        #     self._git("status")
+
+    # New methods for this class
+
+    def _git(self, *parts: str):
+        """Invoke `git` in the :attr:`path` directory."""
+        return subprocess.run(("git", "-C", str(self.path)) + parts)
+
+    def clone(self):
+        """Clone the repository indicated by :attr:`.remote_url`."""
+        self._git("clone", self.remote_url)
+
