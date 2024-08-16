@@ -90,10 +90,30 @@ class Store(ABC):
       message, or directory containing files.
     """
 
-    @abstractmethod
-    def __init__(self, **kwargs) -> None: ...
+    hook_ids: Tuple[str, ...] = ("pre-write",)
 
-    # CRUD methods
+    #: Hooks are per-instance.
+    hook: Mapping[str, List[Callable]]
+
+    # Methods that must be implemented by concrete subclasses
+
+    @abstractmethod
+    def __init__(
+        self,
+        hook: Optional[Mapping[str, Union[Callable, Iterable[Callable]]]] = None,
+        **kwargs,
+    ) -> None:
+        self.hook = {id_: [] for id_ in self.hook_ids}
+
+        for key, hooks in (hook or {}).items():
+            if key not in self.hook:
+                log.warning(f"No hook ID {key!r}; skip")
+                continue
+
+            if callable(hooks):
+                self.hook[key].append(hooks)
+            else:
+                self.hook[key].extend(hooks)
 
     @abstractmethod
     def delete(self, key: str) -> bool:
@@ -124,7 +144,10 @@ class Store(ABC):
 
     @abstractmethod
     def set(self, obj) -> str:
-        """Store `obj` and return its key."""
+        """Store `obj` and return its key.
+
+        If `obj` exists, it is overwritten unconditionally.
+        """
 
     @abstractmethod
     def update(self, obj) -> str:
@@ -149,8 +172,8 @@ class Store(ABC):
 
     @singledispatchmethod
     def key(self, obj) -> str:
-        """Construct the key for `obj`."""
-        raise NotImplementedError
+        """Construct a key for `obj`."""
+        raise NotImplementedError  # if none of the overloads registered below apply
 
     @key.register
     def _key_ds(self, obj: common.BaseDataSet):
@@ -213,7 +236,10 @@ class Store(ABC):
         return list(filter(urn_re.fullmatch, self.iter_keys()))
 
     def list_versions(self, klass: type, maintainer: str, id: str) -> Tuple[str, ...]:
-        """Return all versions of a :class:`~sdmx.model.common.MaintainableArtefact`."""
+        """Return all versions of a :class:`~sdmx.model.common.MaintainableArtefact`.
+
+        The `klass`, `maintainer`, and `id` arguments are the same as for :meth:`.list`.
+        """
         return tuple(
             sorted(
                 sdmx.urn.match(k)["version"]
@@ -282,8 +308,9 @@ class Store(ABC):
 class DictStore(Store):
     _contents: Dict[str, sdmx.model.common.AnnotableArtefact]
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._contents = dict()
+        super().__init__(**kwargs)
 
     def delete(self, key: str):
         self._contents.pop(key)
@@ -326,9 +353,10 @@ class FileStore(Store):
     #: Storage location.
     path: Path
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, **kwargs) -> None:
         self.path = path
         self.path.mkdir(parents=True, exist_ok=True)
+        super().__init__(**kwargs)
 
     def delete(self, key):
         path = self.path_for(None, key)
@@ -356,6 +384,8 @@ class FileStore(Store):
 
         return key
 
+    # New methods for this class
+
     @abstractmethod
     def path_for(self, obj, key) -> Path:
         """Construct the path to the file to be written."""
@@ -377,7 +407,7 @@ class FileStore(Store):
 
     @singledispatchmethod
     def write_message(self, obj, path: Path) -> sdmx.message.Message:
-        """Encapsulate `obj` in a message."""
+        """Write `obj` to an SDMX-ML message at `path`."""
         raise NotImplementedError
 
     @write_message.register
