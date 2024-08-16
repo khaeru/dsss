@@ -519,3 +519,52 @@ class GitStore(StructuredFileStore):
         """Clone the repository indicated by :attr:`.remote_url`."""
         self._git("clone", self.remote_url)
 
+
+class UnionStore(Store):
+    """A Store that unites 1 or more underlying Stores."""
+
+    #: Instances of :class:`.Store`.
+    store: Mapping[str, Store]
+
+    #: Mapping from maintainer IDs to keys of :attr:`.store`.
+    maintainer_store: Mapping[str, str]
+
+    #: Default store
+    default: str
+
+    def get_store_id(self, key: str) -> str:
+        """Return the ID of the store that should be used for `obj`."""
+        maintainer_id = _maintainer_id(key)
+        return self.maintainer_store.get(maintainer_id, self.default)
+
+    # Implementations of abstract methods of Store
+
+    def __init__(self, store=Mapping[str, Store], **kwargs):
+        super().__init__(**kwargs)
+
+        self.store = dict()
+        self.store.update(store)
+
+        self.default = next(iter(self.store.keys()))
+
+        self.maintainer_store = dict()
+
+        log.info(f"Will use default store: {self.default}")
+
+    def delete(self, key):
+        return self.store[self.get_store_id(key)].delete(key)
+
+    def get(self, key):
+        return self.store[self.get_store_id(key)].get(key)
+
+    def iter_keys(self):
+        for store_id, store in self.store.items():
+            yield from store.iter_keys()
+
+    def set(self, obj):
+        key = self.key(obj)
+        return self.store[self.get_store_id(key)].set(obj)
+
+    def update(self, obj):
+        key = self.key(obj)
+        return self.store[self.get_store_id(key)].update(obj)
