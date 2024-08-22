@@ -27,6 +27,9 @@ rst_prolog = """
 
 # -- Options for HTML output -----------------------------------------------------------
 
+# The theme to use for HTML and HTML Help pages.
+html_theme = "sphinx_book_theme"
+
 html_static_path = ["_static"]
 
 # -- Options for sphinx.ext.autosummary ------------------------------------------------
