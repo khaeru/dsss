@@ -28,7 +28,11 @@ dependencies = [
 doc = [
   "sphinx-book-theme",
 ]
+git-store = [
+  "GitPython"
+]
 tests = [
+  "dsss[git-store]",
   "pytest >= 8",
   "pytest-cov",
   "sdmx1[tests]",  # for Jinja2
