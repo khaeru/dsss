@@ -1,21 +1,72 @@
-"""Storage of SDMX artefacts."""
+"""Storage of SDMX artefacts.
+
+:class:`.Store` facilitates use of keys derived from the SDMX Information Model and its
+class hierarchy. Any artefact handled by :meth:`~.Store.key` can be stored or retrieved,
+including:
+
+- Any :class:`~sdmx.model.common.MaintainableArtefact`.
+- Any :class:`~sdmx.model.common.BaseDataSet` or
+  :class:`~sdmx.model.common.BaseMetadataSet`. This includes the :mod:`sdmx.model.v21`
+  and :mod:`sdmx.model.v30` subclasses of Base(Meta)DataSet.
+
+…using standard ‘CRUD’ operations, following the semantics of Python :class:`dict`:
+
+- :meth:`~.Store.set` —create.
+- :meth:`~.Store.get` —retrieve.
+- :meth:`~.Store.update` —update.
+- :meth:`~.Store.delete` —delete.
+
+In general, for :meth:`set` and :meth:`update` operations, it is not necessary to
+explicitly give the key; one is computed from the object to be stored, and returned.
+
+Convenience methods are also provided, including :meth:`.assign_version`, :meth:`.list`,
+:meth:`.list_versions`, :meth:`.resolve`, :meth:`.update_from`.
+
+
+Store is abstract with respect to *how* artefacts are stored. Subclasses **may** use
+different methods of storage. Concrete subclasses include
+:class:`.DictStore`, :class:`.FlatFileStore`, :class:`.StructuredFileStore`,
+:class:`.GitStore`, and :class:`.UnionStore`.
+"""
 
 import logging
 import pickle
 import re
-import subprocess
 from abc import ABC, abstractmethod
 from functools import singledispatchmethod
 from hashlib import blake2s
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+)
 
 import sdmx
 import sdmx.model.version
 import sdmx.urn
 from sdmx.model import common
 
+if TYPE_CHECKING:
+    import git
+
 log = logging.getLogger(__name__)
+
+_DATA_KEY_PATTERN = re.compile(
+    r"(?P<class>[^-]+)-(?P<agency>[^:]+):(?P<id>[^-]+)-(?P<hash>.+)"
+)
+
+DataSetClass = (common.BaseDataSet, common.BaseMetadataSet)
+DataType = Union[common.BaseDataSet, common.BaseMetadataSet]
 
 
 def _short_urn(value: str) -> str:
@@ -23,79 +74,47 @@ def _short_urn(value: str) -> str:
 
 
 def _maintainer_id(
-    obj: Union[common.MaintainableArtefact, common.BaseDataSet, str],
+    obj: Union[common.MaintainableArtefact, DataType, str],
 ) -> str:
     """Return a maintainer for `obj`.
 
     If `obj` is :class:`.DataSet`, the maintainer of the data flow is used.
     """
     if isinstance(obj, str):
-        return sdmx.urn.match(sdmx.urn.expand(obj))["agency"]
+        try:
+            return sdmx.urn.match(sdmx.urn.expand(obj))["agency"]
+        except ValueError:
+            if match := _DATA_KEY_PATTERN.fullmatch(obj):
+                match.group("agency")
+
+    ma = common.Agency(id="_MISSING")
+
     if isinstance(obj, common.MaintainableArtefact):
-        result = obj.maintainer
-    elif obj.described_by:
-        result = obj.described_by.maintainer
-    elif obj.structured_by:
-        result = obj.structured_by.maintainer
-    else:
-        result = common.Agency(id="NONE")
-    return result.id if result else "NONE"
+        ma = obj.maintainer or ma
+    elif isinstance(obj, DataSetClass):
+        ma = cast(
+            common.Agency,
+            # TODO Remove type exclusions when common.BaseMetaDataSet type hints are
+            #      improved
+            getattr(obj.described_by, "maintainer", None)  # type: ignore [union-attr]
+            or getattr(obj.structured_by, "maintainer", ma),  # type: ignore [union-attr]
+        )
+
+    return ma.id
 
 
 class Store(ABC):
-    """Base class for key-value storage of SDMX artefacts.
+    """Abstract class for key-value storage of SDMX artefacts.
 
-    :class:`.Store` facilitates use of keys derived from the SDMX Information Model and
-    class hierarchy. Currently the following can be stored and retrieved:
-
-    1. Value type: :class:`~sdmx.model.common.MaintainableArtefact`.
-
-       Key: The full :attr:`IdentifiableArtefact.urn
-       <sdmx.model.common.IdentifiableArtefact.urn>`.
-
-       Example: :py:`"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FOO:CL(1.0)"`.
-
-    2. Value type: :class:`~sdmx.model.common.BaseDataSet`.
-
-       Key: The :attr:`IdentifiableArtefact.id
-       <sdmx.model.common.IdentifiableArtefact.id>` of the
-       :class:`~sdmx.model.common.BaseDataStructureDefinition` (associated via the
-       :attr:`BaseDataSet.structured_by <sdmx.model.common.BaseDataSet.structured_by>`
-       attribute) and a hash of the :class:`~sdmx.model.common.BaseObservation` keys,
-       joined with a hyphen.
-
-       Example: :py:`"DataSet-DSD_ID-adaa503c71ac9574"`.
-
-       This includes the :mod:`sdmx.model.v21` and :mod:`sdmx.model.v30` subclasses of
-       BaseDataSet, BaseDataflow, and BaseObservation.
-
-    Store is abstract with respect to *how* artefacts are stored; subclasses may use
-    different methods of local or remote storage.
-
-    Store implements the standard ‘CRUD’ operations, following the semantics of Python
-    :class:`dict`:
-
-    - :meth:`set` —create.
-    - :meth:`get` —retrieve.
-    - :meth:`update` —update.
-    - :meth:`delete` —delete.
-
-    In general, for :meth:`set` and :meth:`update` operations, it is not necessary to
-    explicitly give the key; one is computed from the object to be stored, and returned.
-
-    The following convenience methods are also provided:
-
-    - :meth:`list` —list keys for objects matching the given criteria.
-    - :meth:`update_from` —update multiple objects from a message, file containing a
-      message, or directory containing files.
+    Subclasses **must** implement :meth:`delete`, :meth:`get`, :meth:`iter_keys`,
+    :meth:`set`, and :meth:`update`.
     """
 
-    hook_ids: Tuple[str, ...] = ("pre-write",)
+    #: IDs of hooks. Subclasses **may** extend this tuple.
+    hook_ids: Tuple[str, ...] = ("before set",)
 
-    #: Hooks are per-instance.
-    hook: Mapping[str, List[Callable]]
-
-    # Methods that must be implemented by concrete subclasses
+    #: Mapping from :attr:`hook_ids` to lists of hooks. Hooks are per-instance.
+    hook: MutableMapping[str, List[Callable]]
 
     @abstractmethod
     def __init__(
@@ -103,6 +122,16 @@ class Store(ABC):
         hook: Optional[Mapping[str, Union[Callable, Iterable[Callable]]]] = None,
         **kwargs,
     ) -> None:
+        """Initialize the store instance.
+
+        Subclasses **must** call this parent class method to initialize hooks.
+
+        Parameters
+        ----------
+        hook :
+            Hooks for the instance. Mapping from :attr:`hook_ids` to either single
+            callables, or iterables of callables.
+        """
         self.hook = {id_: [] for id_ in self.hook_ids}
 
         for key, hooks in (hook or {}).items():
@@ -120,7 +149,7 @@ class Store(ABC):
         """Delete an object given its `key`.
 
         Raises
-        -------
+        ------
         KeyError
             If the object does not exist.
         """
@@ -128,6 +157,10 @@ class Store(ABC):
     @abstractmethod
     def get(self, key: str) -> "sdmx.model.common.AnnotableArtefact":
         """Return an object given its `key`.
+
+        .. todo::
+
+           - Call :func:`._full_urn()` automatically.
 
         Raises
         ------
@@ -159,7 +192,7 @@ class Store(ABC):
 
         See also
         --------
-        increment_version
+        sdmx.model.version.increment
         """
         versions = self.list_versions(type(obj), obj.maintainer.id, obj.id)
 
@@ -170,16 +203,59 @@ class Store(ABC):
 
         obj.version = next_version
 
+    def invoke_hooks(self, kind: str, *args, **kwargs) -> None:
+        """Invoke each callable in :attr:`hook` with :attr:`hook_id` `kind`."""
+        for hook in self.hook[kind]:
+            hook(*args, **kwargs)
+
     @singledispatchmethod
     def key(self, obj) -> str:
-        """Construct a key for `obj`."""
+        """Construct a key for `obj`.
+
+        Supported `obj` classes include:
+
+        :class:`~sdmx.model.common.MaintainableArtefact`.
+           Example: :py:`"urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FOO:CL(1.0)"`
+
+           The key is the full :attr:`IdentifiableArtefact.urn
+           <sdmx.model.common.IdentifiableArtefact.urn>`.
+
+        :class:`~sdmx.model.common.BaseDataSet`, :class:`~sdmx.model.common.BaseMetadataSet`
+           Example: :py:`"DataSet-FOO:DSD_ID-adaa503c71ac9574"`
+
+           The key consists of:
+
+           - :py:`"DataSet"` or similar, based on the class of `obj`;
+           - the :attr:`IdentifiableArtefact.id
+             <sdmx.model.common.IdentifiableArtefact.id>` of the maintainer of either
+             (a) the :class:`Dataflow <sdmx.model.common.BaseDataflow>` that describes
+             `obj` or if not defined (b) of the :class:`DataStructure
+             <sdmx.model.common.BaseDataStructureDefinition>` that structures `obj`;
+           - the ID of the (Meta)Dataflow or (b) (Meta)DataStructure itself; and
+           - a hash of the :class:`Observation <sdmx.model.common.BaseObservation>`
+             keys.
+        """  # noqa: E501
         raise NotImplementedError  # if none of the overloads registered below apply
 
     @key.register
-    def _key_ds(self, obj: common.BaseDataSet):
-        assert obj.structured_by
-        parts0: List[str] = [type(obj).__name__, obj.structured_by.id]
-        parts1 = [o.dimension for o in obj.obs]
+    def _key_ds(self, obj: DataType):
+        parts0: List[str] = [type(obj).__name__]
+
+        # TODO Remove type exclusions when common.BaseMetaDataSet type hints are
+        #      improved
+        for candidate in obj.described_by, obj.structured_by:  # type: ignore [union-attr]
+            try:
+                urn = sdmx.urn.URN(sdmx.urn.make(candidate))
+                parts0.append(f"{urn.agency}:{urn.id}")
+                break
+            except AttributeError:
+                continue
+
+        if isinstance(obj, common.BaseDataSet):
+            parts1: List[Any] = [o.dimension for o in obj.obs]
+        else:
+            log.warning(f"No unique key for {type(obj)}")
+            parts1 = [str(id(obj))]
 
         hashed_parts = blake2s(pickle.dumps(parts1), digest_size=8)
         return "-".join(parts0 + [hashed_parts.hexdigest()])
@@ -190,7 +266,8 @@ class Store(ABC):
             result = obj.urn
         else:
             if obj.maintainer is None:
-                obj.maintainer = common.Agency(id="UNKNOWN")
+                # TODO Avoid mutating objects; maybe do this on a copy
+                obj.maintainer = common.Agency(id="_MISSING")
             result = sdmx.urn.make(obj)
         return sdmx.urn.normalize(result)
 
@@ -200,15 +277,26 @@ class Store(ABC):
         maintainer: Optional[str] = None,
         id: Optional[str] = None,
         version: Optional[str] = None,
-    ):
-        """List keys for :class:`~sdmx.model.common.MaintainableArtefact`.
+    ) -> List[str]:
+        """List matching keys.
 
-        Only keys that match the given `klass`, `maintainer`, `id` and/or `version` are
-        returned.
+        Only keys that match the given parameters (if any) are returned.
+
+        Parameters
+        ----------
+        klass : :class:`~sdmx.model.common.AnnotableArtefact`
+            Class of artefact.
+        maintainer :
+            ID of the maintainer of an artefact or its (meta)dataflow.
+        id :
+            ID of an artefact or its (meta)dataflow.
+        version :
+            Version of an artefact.
         """
-        if klass is common.BaseDataSet:
-            assert id
-            pattern = f".*DataSet-{id}-.*"
+        if issubclass(klass or object, DataSetClass):
+            maintainer = maintainer or "[^:]+"
+            id = id or "[^-]+"
+            pattern = f".*DataSet-{maintainer}:{id}-.*"
         else:
             placeholder = "@@@"
 
@@ -247,30 +335,60 @@ class Store(ABC):
             )
         )
 
-    def resolve(self, obj, attr: str) -> "common.MaintainableArtefact":
+    def resolve(self, obj, attr: Optional[str] = None) -> "common.MaintainableArtefact":
         """Resolve an external reference in a named `attr` of `obj`."""
-        existing = getattr(obj, attr)
-        if not existing.is_external_reference:
+        if attr:
+            existing = getattr(obj, attr)
+        else:
+            existing = obj
+
+        if existing.is_external_reference is False:
             return existing
-        new_attr = self.get(existing.urn)
-        setattr(obj, attr, new_attr)
-        return cast(common.MaintainableArtefact, new_attr)
+
+        if urn := existing.urn:
+            urn = sdmx.urn.normalize(urn)
+        else:
+            urn = self.key(existing)
+
+        resolved = self.get(urn)
+
+        if attr:
+            setattr(obj, attr, resolved)
+
+        return cast(common.MaintainableArtefact, resolved)
 
     @singledispatchmethod
-    def update_from(self, obj, **kwargs):
+    def update_from(self, obj: "Store", **kwargs) -> None:
         """Update the Store from another `obj`.
 
-        `obj` may be a:
+        `obj` may be:
 
-        - :class:`~sdmx.message.DataMessage` —all
+        - :class:`pathlib.Path` of an :file:`.xml` file or directory —the given file, or
+          all :file:`.xml` files in the directory and any subdirectories, are read and
+          their contents added.
+        - another :class:`Store` instance —all contents of the other store are added.
+        - a :class:`~sdmx.message.DataMessage` —all
           :class:`~sdmx.model.common.BaseDataSet` in the message are read and stored.
-        - :class:`~sdmx.message.StructureMessage` —all SDMX structures in the message
+        - a :class:`~sdmx.message.StructureMessage` —all SDMX structures in the message
           are read and stored.
-        - :class:`pathlib.Path` of an :file:`.xml` file or directory. The given file,
-          or all :file:`.xml` files in the directory, are read, and their contents
-          added.
+
+        Raises
+        ------
+        NotImplementedError
+            for any `obj` other than the above.
         """
-        raise NotImplementedError
+        if isinstance(obj, Store):
+            for key in obj.iter_keys():
+                try:
+                    self.set(obj.get(key))
+                except Exception as e:
+                    action = kwargs.get("errors", "raise")
+                    if action == "log":
+                        log.warning(f"{key} {type(e).__name__}: {e}; skip")
+                    else:  # pragma: no cover
+                        raise
+        else:
+            raise NotImplementedError
 
     @update_from.register
     def _update_from_path(self, p: Path):
@@ -300,7 +418,7 @@ class Store(ABC):
         for obj in msg.iter_objects(external_reference=False):
             try:
                 self.set(obj)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 log.warning(f"Could not store {type(obj).__name__} {obj}: {e}")
                 log.debug(repr(e))
 
@@ -331,6 +449,8 @@ class DictStore(Store):
     def _(self, obj: Union[common.MaintainableArtefact, common.BaseDataSet]):
         key = self.key(obj)
 
+        self.invoke_hooks("before set", key, obj)
+
         self._contents[key] = obj
 
         return key
@@ -359,8 +479,10 @@ class FileStore(Store):
         super().__init__(**kwargs)
 
     def delete(self, key):
-        path = self.path_for(None, key)
-        path.unlink()
+        try:
+            self.path_for(None, key).unlink()
+        except FileNotFoundError:
+            raise KeyError(key)
 
     def get(self, key: str):
         path = self.path_for(None, key)
@@ -399,7 +521,9 @@ class FileStore(Store):
         if isinstance(msg, sdmx.message.StructureMessage):
             for obj in msg.iter_objects(external_reference=False):
                 return obj
-            raise ValueError
+            # NB This line only reached if an entirely empty StructureMessage is read;
+            #    should not occur in practice
+            raise ValueError  # pragma: no cover
         elif isinstance(msg, sdmx.message.DataMessage):
             return msg.data[0]
         else:
@@ -412,6 +536,10 @@ class FileStore(Store):
 
     @write_message.register
     def _ds(self, obj: common.BaseDataSet, path):
+        """Write DataMessage.
+
+        .. todo:: Optionally also write SDMX-CSV with :py:`attributes="gso"`.
+        """
         dm = sdmx.message.DataMessage()
         dm.data.append(obj)
 
@@ -476,60 +604,79 @@ class StructuredFileStore(FileStore):
 
 
 class GitStore(StructuredFileStore):
-    """A store that uses an underlying Git repository.
-
-    .. todo:: Use GitPython instead.
-    """
+    """A store that uses an underlying Git repository."""
 
     #: URL of a remote Git repository to mirror.
     remote_url: Optional[str] = None
 
+    #: :class:`.git.Repo` object.
+    repo: "git.Repo"
+
     # Overrides
 
-    def __init__(self, path: Path, remote_url: Optional[str] = None, **kwargs) -> None:
+    def __init__(
+        self,
+        path: Path,
+        remote_url: Optional[str] = None,
+        clone: bool = False,
+        **kwargs,
+    ) -> None:
+        import git
+
         super().__init__(path=path, **kwargs)
+        self.remote_url = remote_url
 
-        if not self.path.exists():
-            print(f"WARNING: TDC registry not existing in {self.path}")
-            print("To clone, run: tdc registry clone")
+        # Initialize git Repo object in `path`
+        self.repo = git.Repo.init(self.path)
 
-        self.remote_url = self.remote_url
+        if clone:  # pragma: no cover
+            self.clone()
 
     def write_message(self, obj, path):
         # Write the file
         super().write_message(obj, path)
 
         # Add to git, but do not commit
-        # NB if the path is specifically covered by a .gitignore entry, this will
-        #    generate some advice messages but have no effect. See e.g.
-        #    registry/ESTAT/README.
-        # TODO ignore "The following paths are ignored by one of your .gitignore files"
-        self._git("add", str(path.relative_to(self.path)))
-
-        # if self.show_status:
-        #     self._git("status")
+        index = self.repo.index
+        index.add(path)
 
     # New methods for this class
 
-    def _git(self, *parts: str):
-        """Invoke `git` in the :attr:`path` directory."""
-        return subprocess.run(("git", "-C", str(self.path)) + parts)
-
     def clone(self):
         """Clone the repository indicated by :attr:`.remote_url`."""
-        self._git("clone", self.remote_url)
+        import git
+
+        # Ensure there is a remote for the origin
+        try:
+            self.repo.delete_remote("origin")
+        except git.exc.GitCommandError:
+            pass
+
+        origin = self.repo.create_remote("origin", self.remote_url)
+
+        # Fetch the remote
+        branch_name = "main"
+        origin.fetch(f"refs/heads/{branch_name}")
+        b = origin.refs[branch_name]
+
+        # Check out the branch
+        try:
+            head = self.repo.heads[branch_name]
+        except IndexError:
+            head = self.repo.create_head(branch_name, b)
+        head.set_tracking_branch(b).checkout()
 
 
 class UnionStore(Store):
     """A Store that unites 1 or more underlying Stores."""
 
-    #: Instances of :class:`.Store`.
+    #: Mapping from store IDs to instances of :class:`.Store`.
     store: Mapping[str, Store]
 
     #: Mapping from maintainer IDs to keys of :attr:`.store`.
-    maintainer_store: Mapping[str, str]
+    maintainer_store: MutableMapping[str, str]
 
-    #: Default store
+    #: ID of the default :attr:`store`.
     default: str
 
     def get_store_id(self, key: str) -> str:
