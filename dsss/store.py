@@ -180,7 +180,7 @@ class Store(ABC):
     def set(self, obj) -> str:
         """Store `obj` and return its key.
 
-        If `obj` exists, it is overwritten unconditionally.
+        If `obj` exists, :class:`KeyError` is raised.
         """
 
     @abstractmethod
@@ -437,17 +437,19 @@ class DictStore(Store):
     def get(self, key: str):
         return self._contents[key]
 
-    @singledispatchmethod
     def set(self, obj):
-        raise NotImplementedError
+        key = self.key(obj)
 
-    @singledispatchmethod
+        if key in self._contents:
+            raise KeyError(key)
+
+        self.invoke_hooks("before set", key, obj)
+
+        self._contents[key] = obj
+
+        return key
+
     def update(self, obj):
-        raise NotImplementedError
-
-    @set.register
-    @update.register
-    def _(self, obj: Union[common.MaintainableArtefact, common.BaseDataSet]):
         key = self.key(obj)
 
         self.invoke_hooks("before set", key, obj)
