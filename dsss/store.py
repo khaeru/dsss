@@ -46,6 +46,7 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
+    Set,
     Tuple,
     Union,
     cast,
@@ -473,6 +474,9 @@ class FileStore(Store):
     #: Storage location.
     path: Path
 
+    #: Expressions giving file paths to ignore.
+    ignore: Set[Callable[[Path], bool]] = set()
+
     def __init__(self, path: Path, **kwargs) -> None:
         self.path = path
         self.path.mkdir(parents=True, exist_ok=True)
@@ -562,7 +566,10 @@ class FlatFileStore(FileStore):
     """FileStore as a flat collection of files, with names identical to keys."""
 
     def iter_keys(self):
-        return [p.name for p in self.path.iterdir()]
+        return map(
+            lambda p: p.name,
+            filter(lambda p: not any(f(p) for f in self.ignore), self.path.iterdir()),
+        )
 
     def path_for(self, obj, key) -> Path:
         return self.path.joinpath(key)
@@ -595,8 +602,12 @@ class StructuredFileStore(FileStore):
             return f"urn:sdmx:org.sdmx.infomodel.{PACKAGE[klass.__name__]}.{path.name}"
 
     def iter_keys(self):
-        for maintainer in filter(Path.is_dir, self.path.iterdir()):
-            for p in maintainer.iterdir():
+        # Iterate over top-level directories within `self.path`
+        for dir_ in filter(Path.is_dir, self.path.iterdir()):
+            # Iterate over files within each directory
+            for p in filter(
+                lambda p: not any(f(p) for f in self.ignore), dir_.iterdir()
+            ):
                 try:
                     yield self._key_for(p)
                 except Exception:
@@ -613,6 +624,8 @@ class GitStore(StructuredFileStore):
     repo: "git.Repo"
 
     # Overrides
+
+    ignore = {lambda p: ".git" in p.parts}
 
     def __init__(
         self,
