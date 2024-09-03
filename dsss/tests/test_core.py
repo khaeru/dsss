@@ -1,12 +1,14 @@
 import re
 from io import BytesIO
 from operator import itemgetter
+from typing import Optional
 
 import pytest
 import sdmx
 import sdmx.rest.v21
 import sdmx.rest.v30
 import sdmx.tests.test_rest
+from sdmx.message import ErrorMessage
 from sdmx.model import common
 from sdmx.rest.common import Resource
 
@@ -127,42 +129,51 @@ def test_data(client, source):
 @pytest.mark.parametrize(
     "resource_type, count",
     (
-        # ("actualconstraint", 0),
+        ("actualconstraint", None),
         ("agencyscheme", 3),
-        # ("allowedconstraint", 0),
-        # ("attachementconstraint", 0),
-        # ("availableconstraint", 0),
+        ("allowedconstraint", None),
+        ("attachementconstraint", None),
+        pytest.param(
+            "availableconstraint", None, marks=pytest.mark.xfail(raises=ValueError)
+        ),
         ("categorisation", 7),
         ("categoryscheme", 3),
-        ("codelist", 88),
-        ("conceptscheme", 19),
-        # ("contentconstraint", 0),
-        # ("customtypescheme", 0),
-        # ("data", 0),
-        # ("dataconsumerscheme", 0),
-        ("dataflow", 677),
-        # ("dataproviderscheme", 0),
-        ("datastructure", 22),
-        # ("hierarchicalcodelist", 0),
-        # ("metadata", 0),
-        # ("metadataflow", 0),
+        ("codelist", 86),
+        ("conceptscheme", 25),
+        ("contentconstraint", 11),
+        ("customtypescheme", 0),
+        # NB Unclear if this should work
+        # ("data", None),
+        ("dataconsumerscheme", None),
+        ("dataflow", 670),
+        ("dataproviderscheme", 1),
+        ("datastructure", 16),
+        ("hierarchicalcodelist", 0),
+        pytest.param(
+            "metadata",
+            None,
+            marks=pytest.mark.xfail(raises=(NotImplementedError, ValueError)),
+        ),
+        ("metadataflow", None),
         ("metadatastructure", 5),
-        # ("namepersonalisationscheme", 0),
-        # ("organisationscheme", 0),
-        # ("organisationunitscheme", 0),
-        # ("process", 0),
-        # ("provisionagreement", 0),
-        # ("reportingtaxonomy", 0),
-        # ("rulesetscheme", 0),
-        # ("schema", 0),
-        # ("structure", 0),
-        # ("structureset", 0),
-        # ("transformationscheme", 0),
-        # ("userdefinedoperatorscheme", 0),
-        # ("vtlmappingscheme", 0),
+        ("namepersonalisationscheme", 0),
+        ("organisationscheme", None),
+        ("organisationunitscheme", None),
+        ("process", None),
+        ("provisionagreement", None),
+        ("reportingtaxonomy", None),
+        ("rulesetscheme", 0),
+        pytest.param("schema", None, marks=pytest.mark.xfail),
+        pytest.param("structure", None, marks=pytest.mark.xfail(raises=KeyError)),
+        ("structureset", 0),
+        ("transformationscheme", 0),
+        ("userdefinedoperatorscheme", 0),
+        ("vtlmappingscheme", 0),
     ),
 )
-def test_structure_all(client, source, url_class, resource_type, count) -> None:
+def test_structure_all(
+    client, source, url_class, resource_type, count: Optional[int]
+) -> None:
     from sdmx.model.v21 import get_class
 
     # Identify the resource and artefact class
@@ -179,8 +190,12 @@ def test_structure_all(client, source, url_class, resource_type, count) -> None:
     # Response can be parsed as SDMX-ML
     msg = sdmx.read_sdmx(BytesIO(rv.content))
 
-    # Collection has the expected number of entries
-    assert count == len(msg.objects(klass))
+    if count is None:
+        # An error message was returned indicating the given endpoint is not implemented
+        assert isinstance(msg, ErrorMessage)
+    else:
+        # Collection has the expected number of entries
+        assert count == len(msg.objects(klass))
 
 
 @pytest.mark.parametrize(
