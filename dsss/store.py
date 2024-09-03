@@ -33,6 +33,7 @@ import logging
 import pickle
 import re
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from functools import singledispatchmethod
 from hashlib import blake2s
 from pathlib import Path
@@ -381,7 +382,7 @@ class Store(ABC):
         if isinstance(obj, Store):
             for key in obj.iter_keys():
                 try:
-                    self.set(obj.get(key))
+                    self.set(deepcopy(obj.get(key)))
                 except Exception as e:
                     action = kwargs.get("errors", "raise")
                     if action == "log":
