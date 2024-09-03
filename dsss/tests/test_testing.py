@@ -1,4 +1,5 @@
 import pytest
+from sdmx.model import v21
 
 
 @pytest.mark.parametrize(
@@ -28,4 +29,13 @@ import pytest
 )
 def test_cached_store_for_app0(cached_store_for_app, agency_id, count) -> None:
     # NB Use <= to allow for additions to specimens; == to identify/update values
-    assert count <= len(cached_store_for_app.list(maintainer=agency_id))
+    s = cached_store_for_app
+    assert count <= len(s.list(maintainer=agency_id))
+
+
+def test_cached_store_for_app1(cached_store_for_app):
+    """Ensure the cached_store_for_app test fixture contains the necessary artefacts."""
+    s = cached_store_for_app
+
+    result = s.list(klass=v21.DataflowDefinition, maintainer="ECB", id="EXR")
+    assert len(result)
