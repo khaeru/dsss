@@ -601,15 +601,22 @@ class StructuredFileStore(FileStore):
 
     def _key_for(self, path: Path) -> str:
         """Inverse of path_for."""
-        from sdmx.model.v21 import PACKAGE, get_class
+        from sdmx.model import v21, v30
 
         if "DataSet-" in path.name:
             return path.name
         else:
             # Reassemble the URN given the path name
-            klass = get_class(path.name.split("=")[0])
-            assert klass
-            return f"urn:sdmx:org.sdmx.infomodel.{PACKAGE[klass.__name__]}.{path.name}"
+            for model in v21, v30:
+                try:
+                    klass = model.get_class(path.name.split("=")[0])
+                    return (
+                        f"urn:sdmx:org.sdmx.infomodel.{model.PACKAGE[klass.__name__]}."
+                        f"{path.name}"
+                    )
+                except (AttributeError, KeyError):
+                    continue
+        raise ValueError(path)
 
     def iter_keys(self):
         # Iterate over top-level directories within `self.path`
