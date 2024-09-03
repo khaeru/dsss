@@ -409,7 +409,7 @@ class Store(ABC):
     def _update_from_dm(self, msg: sdmx.message.DataMessage):
         for ds in msg.data:
             try:
-                self.set(ds)
+                self.update(ds)
             except Exception as e:
                 log.warning(f"Could not store {type(ds).__name__} {ds}: {e}")
                 log.debug(repr(e))
@@ -418,7 +418,7 @@ class Store(ABC):
     def _update_from_sm(self, msg: sdmx.message.StructureMessage):
         for obj in msg.iter_objects(external_reference=False):
             try:
-                self.set(obj)
+                self.update(obj)
             except Exception as e:  # pragma: no cover
                 log.warning(f"Could not store {type(obj).__name__} {obj}: {e}")
                 log.debug(repr(e))
