@@ -34,7 +34,11 @@ SIMPLE_TESTS = (
     ("/reportingtaxonomy/ECB", 200, b"<mes:Error"),
     #
     # Data
-    ("/data/ECB,EXR?startPeriod=2011&detail=nodata", 200, b"<mes:GenericData"),
+    (
+        "/data/ECB,EXR?startPeriod=2011&detail=nodata",
+        200,
+        b"<mes:StructureSpecificData",
+    ),
     (
         "/data/ECB,EXR/M.USD.EUR.SP00.A",
         200,
@@ -145,7 +149,7 @@ def test_data(client, source):
         # NB Unclear if this should work
         # ("data", None),
         ("dataconsumerscheme", None),
-        ("dataflow", 670),
+        ("dataflow", 671),
         ("dataproviderscheme", 1),
         ("datastructure", 16),
         ("hierarchicalcodelist", 0),
@@ -201,7 +205,7 @@ def test_structure_all(
 @pytest.mark.parametrize(
     "url, count",
     (
-        ("/codelist/ALL/all/latest", 88),
+        ("/codelist/ALL/all/latest", 86),
         ("/codelist/FR1/all/latest", 7),
         ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
     ),

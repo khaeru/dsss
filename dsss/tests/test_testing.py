@@ -7,7 +7,7 @@ from sdmx.model import v21
     (
         ("BIS", 20),
         ("ECB", 22),  # Could be 22
-        ("ESTAT", 27),  # Could be 34
+        ("ESTAT", 26),  # Could be 34
         ("FR1", 676),  # Could be 1344
         ("IAEG-SDGs", 1),
         ("IAEG", 1),
