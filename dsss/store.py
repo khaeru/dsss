@@ -550,16 +550,26 @@ class FileStore(Store):
         # Update dm.observation_dimension to match the keys of `obj`
         dm.update()
 
-        with open(path, "wb") as f:
-            f.write(sdmx.to_xml(dm, pretty_print=True))
+        try:
+            with open(path, "wb") as f:
+                f.write(sdmx.to_xml(dm, pretty_print=True))
+        except Exception:
+            # log.error(f"Writing to {path}: {e}")
+            path.unlink()
+            raise
 
     @write_message.register
     def _ma(self, obj: common.MaintainableArtefact, path):
         sm = sdmx.message.StructureMessage()
         sm.add(obj)
 
-        with open(path, "wb") as f:
-            f.write(sdmx.to_xml(sm, pretty_print=True))
+        try:
+            with open(path, "wb") as f:
+                f.write(sdmx.to_xml(sm, pretty_print=True))
+        except Exception:
+            # log.error(f"Writing to {path}: {e}")
+            path.unlink()
+            raise
 
 
 class FlatFileStore(FileStore):
