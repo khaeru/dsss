@@ -1,8 +1,13 @@
-# TODO per the SDMX REST cheat sheet
-#
-# - Handle HTTP headers:
-#   If-Modified-Since Get the data only if something has changed
-#   Accept-Encoding   Compress the response
+"""Starlette implementation of the SDMX REST API.
+
+
+.. todo:: per the SDMX REST cheat sheet:
+
+  - Handle HTTP headers:
+
+    - ``If-Modified-Since`` Get the data only if something has changed.
+    - ``Accept-Encoding`` Compress the response.
+"""
 
 from datetime import datetime
 from importlib import import_module
@@ -40,6 +45,7 @@ class CustomHeaderMiddleware(BaseHTTPMiddleware):
 
 
 def build_app(**config_kwargs):
+    """Construct and return a :class:`.Starlette` DSSS app."""
     # Parse configuration from arguments
     config = Config(**config_kwargs)
 
@@ -95,6 +101,7 @@ async def handle_exception(request: "starlette.requests.Request", exc):
 
 
 async def index(request: "starlette.requests.Request"):
+    """Return a bare-bones HTML info page on from the base URL."""
     return HTMLResponse(
         """<p>This is a <a href="https://github.com/khaeru/dsss">DSSS</a> server.</p>"""
     )

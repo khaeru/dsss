@@ -1,3 +1,5 @@
+"""Common code and utilities."""
+
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Collection, List, Mapping, Optional, Type

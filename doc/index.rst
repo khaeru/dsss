@@ -47,9 +47,13 @@ Roadmap
 After 1.0, some features that will likely be added include:
 
 - Provide complete documentation, including for cloud deployment.
-- Provide a complete test suite.
 - Provide logging.
-- Support additional maintained Python versions, macOS, and Windows.
+- Support additional maintained Python versions prior to Python 3.11.
+- Support macOS and Windows (low priority).
+
+The following is a list of TODOs appearing throughout this documentation:
+
+.. todolist::
 
 License
 =======

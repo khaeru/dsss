@@ -160,10 +160,6 @@ class Store(ABC):
     def get(self, key: str) -> "sdmx.model.common.AnnotableArtefact":
         """Return an object given its `key`.
 
-        .. todo::
-
-           - Call :func:`._full_urn()` automatically.
-
         Raises
         ------
         KeyError

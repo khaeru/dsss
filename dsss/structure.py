@@ -1,3 +1,5 @@
+"""Structure query endpoints."""
+
 from itertools import product
 from typing import TYPE_CHECKING, List, Mapping
 
@@ -34,6 +36,8 @@ NOT_IMPLEMENTED_WRITE_SDMX_ML_3_0 = (
 
 
 class BaseResourceConvertor(Convertor):
+    """Convert a string path fragment to a :class:`sdmx.Resource` enum value."""
+
     def convert(self, value: str) -> Resource:
         return Resource[value]
 
