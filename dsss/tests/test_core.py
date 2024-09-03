@@ -146,7 +146,7 @@ def test_data(client, source):
         # ("hierarchicalcodelist", 0),
         # ("metadata", 0),
         # ("metadataflow", 0),
-        # ("metadatastructure", 0),
+        ("metadatastructure", 5),
         # ("namepersonalisationscheme", 0),
         # ("organisationscheme", 0),
         # ("organisationunitscheme", 0),
