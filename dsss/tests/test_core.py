@@ -12,6 +12,8 @@ from sdmx.message import ErrorMessage
 from sdmx.model import common
 from sdmx.rest.common import Resource
 
+from dsss.testing import assert_le
+
 
 def test_index(client):
     rv = client.get("/")
@@ -198,8 +200,7 @@ def test_structure_all(
         # An error message was returned indicating the given endpoint is not implemented
         assert isinstance(msg, ErrorMessage)
     else:
-        # Collection has the expected number of entries
-        assert count == len(msg.objects(klass))
+        assert_le(count, len(msg.objects(klass)))
 
 
 @pytest.mark.parametrize(

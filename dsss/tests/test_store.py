@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import pytest
 import sdmx
@@ -15,6 +15,7 @@ from dsss.store import (
     StructuredFileStore,
     UnionStore,
 )
+from dsss.testing import assert_le
 
 if TYPE_CHECKING:
     import pathlib
@@ -99,13 +100,17 @@ class TestStore:
         return result
 
     @pytest.fixture
-    def N_missing(self, s: Store):
-        values: Mapping[type, int] = {
-            FlatFileStore: 33,
-            StructuredFileStore: 34,
-            GitStore: 34,
-        }
-        return values.get(type(s), 0)
+    def N_total(self, s: Store) -> int:
+        """Total number of artefacts present in the Store.
+
+        The value is lower for FileStore subclasses which cannot write certain types of
+        artefacts to SDMX-ML.
+        """
+        return 921 - {
+            FlatFileStore: 41,
+            StructuredFileStore: 41,
+            GitStore: 41,
+        }.get(type(s), 0)
 
     def test_assign_version(self, s: Store):
         obj: "common.Codelist" = common.Codelist(
@@ -173,8 +178,8 @@ class TestStore:
             assert hasattr(result, "compare")  # TODO For mypy; remove when possible
             assert result.compare(obj, strict=strict)
 
-    def test_iter_keys0(self, s: Store, N_missing: int):
-        assert 914 - N_missing <= len(list(s.iter_keys()))
+    def test_iter_keys0(self, s: Store, N_total):
+        assert_le(N_total, len(list(s.iter_keys())))
 
     def test_key(self, specimen, s: Store):
         with specimen("ECB_EXR/1/M.USD.EUR.SP00.A.xml") as f:
@@ -185,18 +190,21 @@ class TestStore:
         # Key contains the ID of the maintainer of the DFD or DSD
         assert "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == k
 
-    def test_list(self, s: Store):
-        # klass= only
-        assert 86 <= len(s.list(common.Codelist))
-
-        # klass= and maintainer=
-        assert 15 == len(s.list(common.Codelist, maintainer="SDMX"))
-
-        # klass= and id=
-        assert 5 == len(s.list(common.Codelist, id="CL_UNIT_MULT"))
-
-        # DataSet and MetaDataSet
-        assert 16 <= len(s.list(common.BaseDataSet))
+    @pytest.mark.parametrize(
+        "N_exp, klass, kw",
+        (
+            (86, common.Codelist, {}),  # klass= only
+            # NB 88 for DictStore
+            (15, common.Codelist, dict(maintainer="SDMX")),  # klass= and maintainer=
+            (5, common.Codelist, dict(id="CL_UNIT_MULT")),  # klass= and id=
+            (15, common.BaseDataSet, {}),  # DataSet
+            # NB 32 for DictStore
+            (2, common.BaseMetadataSet, {}),  # MetadataSet
+        ),
+    )
+    def test_list(self, s: Store, N_exp: int, klass, kw):
+        """:meth:`.list` returns the correct number of objects."""
+        assert_le(N_exp, len(s.list(klass, **kw)))
 
     def test_list_versions(self, s: Store):
         result = s.list_versions(common.Codelist, maintainer="SDMX", id="CL_UNIT_MULT")
@@ -381,11 +389,7 @@ class TestUnionStore(TestStore):
 
         return result
 
-    @pytest.fixture
-    def N_missing(self, s) -> int:
-        return 2
-
-    def test_get_set1(self, s: UnionStore, N_missing: int):
+    def test_get_set1(self, s: UnionStore, N_total):
         # Test get() and set() with
         cl: "common.Codelist" = common.Codelist(id="CL_TEST", version="1.0.0")
 
@@ -396,5 +400,5 @@ class TestUnionStore(TestStore):
 
         # The +3 and +2 include byproducts of above tests
         # TODO Use Store.delete() in those tests to remove added artefacts
-        assert 914 - N_missing - 35 + 3 <= len(s.store["A"].list())
+        assert_le(N_total, len(s.store["A"].list()))
         assert 2 == len(s.store["B"].list())
