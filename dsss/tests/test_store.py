@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Mapping, Tuple
+from typing import TYPE_CHECKING, Dict, List, Mapping, Tuple
 
 import pytest
 import sdmx
@@ -52,32 +52,31 @@ def objects_and_keys() -> List[Tuple[common.AnnotableArtefact, str]]:
 
 
 def before_set_1(*args, **kwargs):
-    log.info(f"hook before_set_1 {args} {kwargs}")
+    log.info("\n".join(["hook before_set_1", str(args)[:80], str(kwargs)[:80]]))
 
 
 def before_set_2(*args, **kwargs):
-    log.info(f"hook before_set_2 {args} {kwargs}")
+    log.info("\n".join(["hook before_set_2", str(args)[:80], str(kwargs)[:80]]))
 
 
 class TestDictStore:
     def test_init_hook(self, caplog) -> None:
         def _(): ...
 
+        # Iterable of callable can be passed to hooks= arg
+        s = DictStore(hook={"before set": [before_set_1, before_set_2]})
+
         # Single callable (not iterable of callable) can be passed to hooks= arg
         s = DictStore(hook={"before set": _})
         assert _ in s.hook["before set"]
 
+        # Message is logged passing hooks for unregistered IDs
         assert 0 == len(caplog.messages)
         DictStore(hook={"not a hook": _})
         assert "No hook ID 'not a hook'; skip" in caplog.messages
 
 
 class TestStore:
-    @pytest.fixture(scope="class")
-    def hooks(self) -> dict:
-        """Some example hooks for testing."""
-        return {"before set": [before_set_1, before_set_2]}
-
     @pytest.fixture(
         scope="class",
         params=[
@@ -87,10 +86,10 @@ class TestStore:
         ],
         ids=lambda p: p[0].__name__,
     )
-    def s(self, request, tmp_path_factory, all_specimens, hooks) -> Store:
+    def s(self, request, tmp_path_factory, all_specimens) -> Store:
         klass, with_tmp_dir = request.param
 
-        args = dict(hook=hooks)
+        args: Dict[str, str] = dict()
         if with_tmp_dir:
             args.update(path=tmp_path_factory.mktemp(klass.__name__))
 
@@ -326,8 +325,8 @@ class TestGitStore(TestStore):
         return path
 
     @pytest.fixture(scope="class")
-    def s(self, request, tmp_path_factory, all_specimens, hooks) -> Store:
-        result = GitStore(hook=hooks, path=tmp_path_factory.mktemp("GitStore"))
+    def s(self, request, tmp_path_factory, all_specimens) -> Store:
+        result = GitStore(path=tmp_path_factory.mktemp("GitStore"))
         result.update_from(all_specimens, errors="log")
 
         return result
@@ -367,13 +366,12 @@ class TestGitStore(TestStore):
 
 class TestUnionStore(TestStore):
     @pytest.fixture(scope="class")
-    def s(self, request, tmp_path_factory, all_specimens, hooks) -> UnionStore:
+    def s(self, request, tmp_path_factory, all_specimens) -> UnionStore:
         result = UnionStore(
             store={
                 "A": DictStore(path=tmp_path_factory.mktemp("UnionStoreA")),
                 "B": DictStore(path=tmp_path_factory.mktemp("UnionStoreB")),
             },
-            hook=hooks,
         )
 
         # Map maintainer IDs "BAR" and "BAZ" to store "B"; "FOO" explicitly to "A"
