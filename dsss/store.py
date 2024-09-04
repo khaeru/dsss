@@ -380,16 +380,28 @@ class Store(ABC):
     def update_from(self, obj: "Store", **kwargs) -> None:
         """Update the Store from another `obj`.
 
-        `obj` may be:
+        Parameters
+        ----------
+        obj :
+            Any of:
 
-        - :class:`pathlib.Path` of an :file:`.xml` file or directory —the given file, or
-          all :file:`.xml` files in the directory and any subdirectories, are read and
-          their contents added.
-        - another :class:`Store` instance —all contents of the other store are added.
-        - a :class:`~sdmx.message.DataMessage` —all
-          :class:`~sdmx.model.common.BaseDataSet` in the message are read and stored.
-        - a :class:`~sdmx.message.StructureMessage` —all SDMX structures in the message
-          are read and stored.
+            - :class:`pathlib.Path` of an :file:`.xml` file or directory —the given
+              file, or all :file:`.xml` files in the directory and any subdirectories,
+              are read and their contents added.
+            - another :class:`Store` instance —all contents of the other store are
+              added.
+            - a :class:`~sdmx.message.DataMessage` —all
+              :class:`~sdmx.model.common.BaseDataSet` in the message are read and
+              stored.
+            - a :class:`~sdmx.message.StructureMessage` —all SDMX structures in the
+              message are read and stored.
+
+        Other Parameters
+        ----------------
+        ignore : optional
+            if `obj` is a path, `ignore` is an optional iterable of callables. Each
+            of the callables in `ignore` is applied to every file path to be read; if
+            the any of them returns :obj:`True`, the file is skipped.
 
         Raises
         ------
@@ -410,11 +422,15 @@ class Store(ABC):
             raise NotImplementedError
 
     @update_from.register
-    def _update_from_path(self, p: Path):
+    def _update_from_path(
+        self, p: Path, *, ignore: Optional[Iterable[Callable[[Path], bool]]] = None
+    ):
+        ignore = ignore or []
+
         if p.is_dir():
             for child in filter(lambda s: not s.name.startswith("."), p.iterdir()):
-                self.update_from(child)
-        elif p.is_file() and p.suffix == ".xml":
+                self.update_from(child, ignore=ignore)
+        elif p.is_file() and p.suffix == ".xml" and not any(i(p) for i in ignore):
             try:
                 msg = sdmx.read_sdmx(p)
             except Exception as e:
