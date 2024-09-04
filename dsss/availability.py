@@ -1,3 +1,5 @@
+"""Availability query endpoints."""
+
 from typing import TYPE_CHECKING
 
 import sdmx.rest.v30

@@ -1,3 +1,5 @@
+"""Configuration for :mod:`.dsss`."""
+
 import logging
 import sys
 from dataclasses import dataclass, field
@@ -9,7 +11,8 @@ if TYPE_CHECKING:
     import dsss.store
 
 
-def _version_string() -> str:
+def version_string() -> str:
+    """Return a string with versions of :mod:`.dsss`, :mod:`.starlette`, and Python."""
     return " ".join(
         [
             f"DSSS/{version('dsss')}",
@@ -21,16 +24,20 @@ def _version_string() -> str:
 
 @dataclass
 class Config:
-    #: Storage module to use.
+    """Configuration for a server instance."""
+
+    #: Storage class to use; the fully qualified name of a class in :mod:`.store`.
     store: "dsss.store.Store"
 
-    # TODO Read from file
+    #: Start the server in debugging mode.
+    #:
+    #: .. todo:: Read this setting from file.
     debug: bool = True
 
     #: Path containing data.
     data_path: Path = field(default_factory=lambda: Path.cwd().joinpath("data"))
 
-    version_string: str = field(default_factory=_version_string)
+    version_string: str = field(default_factory=version_string)
 
     def __post_init__(self):
         log = logging.getLogger("dsss")

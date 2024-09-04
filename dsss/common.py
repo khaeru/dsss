@@ -1,3 +1,5 @@
+"""Common code and utilities."""
+
 import logging
 from datetime import datetime
 from typing import TYPE_CHECKING, Collection, List, Mapping, Optional, Type
@@ -59,7 +61,13 @@ class SDMXResponse(Response):
         if "+xml" in (self.media_type or ""):
             # SDMX-ML
             # TODO Check for v2.1 versus v3.0.0
-            body = sdmx.to_xml(self.message, pretty_print=True)
+            try:
+                body = sdmx.to_xml(self.message, pretty_print=True)
+            except Exception as e:
+                body = sdmx.to_xml(
+                    gen_error_message(500, f"Error rendering message: {e!r}"),
+                    pretty_print=True,
+                )
         else:
             # Something else
             body = sdmx.to_xml(

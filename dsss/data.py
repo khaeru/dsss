@@ -1,3 +1,5 @@
+"""Data query endpoints."""
+
 from typing import TYPE_CHECKING, List, Mapping, Tuple
 
 import sdmx
@@ -83,11 +85,7 @@ async def handle(request: "starlette.requests.Request"):
 
 
 def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: Mapping):
-    """Return an SDMX DataMessage with the requested contents.
-
-    The current version loads a file from the data path named
-    :file:`{agency_id}:{flow_id}-structure.xml`
-    """
+    """Return an SDMX DataMessage with the requested contents."""
     footer_text: List[str] = []
 
     # Unpack path parameters
@@ -104,6 +102,7 @@ def get_data(config: "dsss.config.Config", path_params: Mapping, query_params: M
         return gen_error_message(404, "\n\n".join(footer_text))
 
     dfd = config.store.get(urns[0])
+
     dsd = config.store.resolve(dfd, "structure")
     assert isinstance(dfd, common.BaseDataflow)
     assert isinstance(dsd, common.BaseDataStructureDefinition)

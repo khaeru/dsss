@@ -60,7 +60,6 @@ jobs:
           --cov-report=xml \
           --numprocesses auto
       shell: bash
-      continue-on-error: true
 
     - name: Upload test coverage to Codecov.io
       uses: codecov/codecov-action@v4

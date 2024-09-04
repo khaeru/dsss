@@ -18,6 +18,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
 ]
 
 rst_prolog = """
@@ -26,6 +27,9 @@ rst_prolog = """
 """
 
 # -- Options for HTML output -----------------------------------------------------------
+
+# The theme to use for HTML and HTML Help pages.
+html_theme = "sphinx_book_theme"
 
 html_static_path = ["_static"]
 
@@ -47,3 +51,7 @@ intersphinx_mapping = {
     "py": ("https://docs.python.org/3", None),
     "sdmx": ("https://sdmx1.readthedocs.io/en/stable", None),
 }
+
+# -- Options for sphinx.ext.todo -------------------------------------------------------
+
+todo_include_todos = True

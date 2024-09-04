@@ -1,3 +1,5 @@
+"""Registration query endpoints."""
+
 from typing import TYPE_CHECKING
 
 from starlette.routing import Route

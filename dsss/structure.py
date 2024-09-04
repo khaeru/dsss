@@ -1,8 +1,11 @@
+"""Structure query endpoints."""
+
 from itertools import product
 from typing import TYPE_CHECKING, List, Mapping
 
 import sdmx
 from sdmx.format import MediaType
+from sdmx.model import v30
 from sdmx.model.v21 import get_class
 from sdmx.rest.common import Resource
 from starlette.convertors import Convertor, register_url_convertor
@@ -23,8 +26,18 @@ if TYPE_CHECKING:
 
 NOT_IMPLEMENTED_QUERY = {"detail", "references"}
 
+#: SDMX 3.0 IM classes not yet handled by :mod:`sdmx.writer.xml`.
+NOT_IMPLEMENTED_WRITE_SDMX_ML_3_0 = (
+    v30.GeoGridCodelist,
+    v30.GeographicCodelist,
+    v30.Dataflow,
+    v30.DataStructureDefinition,
+)
+
 
 class BaseResourceConvertor(Convertor):
+    """Convert a string path fragment to a :class:`sdmx.Resource` enum value."""
+
     def convert(self, value: str) -> Resource:
         return Resource[value]
 
@@ -90,6 +103,11 @@ def get_structures(
         version=None if version in ("+", "latest", None) else version,
     ):
         obj = config.store.get(urn)
+
+        if isinstance(obj, NOT_IMPLEMENTED_WRITE_SDMX_ML_3_0):
+            footer_text.append(f"Omit unsupported {obj.__class__} {urn}")
+            continue
+
         message.objects(type(obj))[urn.split("=")[-1]] = obj
 
     N = len(list(message.iter_objects()))
