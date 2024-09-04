@@ -1,6 +1,7 @@
 """Fixtures for testing :mod:`.dsss`."""
 
 import logging
+import os
 from typing import TYPE_CHECKING
 
 import pytest
@@ -9,6 +10,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 log = logging.getLogger(__name__)
+
+GHA = "GITHUB_ACTIONS" in os.environ
 
 
 def assert_le(exp: int, obs: int) -> None:
