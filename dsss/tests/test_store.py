@@ -107,7 +107,7 @@ class TestStore:
         artefacts to SDMX-ML.
         """
         return (
-            908  # NB 908 on GHA, 921 locally
+            907  # NB 907 on GHA, 920 locally
         ) - {
             FlatFileStore: 41,
             StructuredFileStore: 41,
@@ -185,15 +185,20 @@ class TestStore:
         assert_le(N_total, len(list(s.iter_keys())))
 
     def test_key0(self, specimen, s: Store):
+        """Keys can be generated for certain specimens."""
         with specimen("ECB_EXR/1/M.USD.EUR.SP00.A.xml") as f:
             msg = sdmx.read_sdmx(f)
 
-        k = s.key(msg.data[0])
-
         # Key contains the ID of the maintainer of the DFD or DSD
-        assert "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == k
+        "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == s.key(msg.data[0])
 
-    def test_key1(self, specimen, s: Store) -> None:
+        with specimen("ESTAT/esms.xml") as f:
+            msg = sdmx.read_sdmx(f)
+
+        # Key is generated for a MetadataSet containing XHTMLAttributeValue / XML node
+        assert "metadata-ESTAT:ESMS-6473b2060169eb77" == s.key(msg.data[0])
+
+    def test_key1(self, s: Store) -> None:
         """:meth:`.key` generates distinct values for MetadataSet."""
         # print("\n".join(sorted(s.list())))
 
@@ -242,7 +247,7 @@ class TestStore:
             (5, common.Codelist, dict(id="CL_UNIT_MULT")),  # klass= and id=
             (14, common.BaseDataSet, {}),  # DataSet
             # NB 14 on GHA, 15 locally, 32 for DictStore
-            (2, common.BaseMetadataSet, {}),  # MetadataSet
+            (1, common.BaseMetadataSet, {}),  # MetadataSet
         ),
     )
     def test_list(self, s: Store, N_exp: int, klass, kw):
