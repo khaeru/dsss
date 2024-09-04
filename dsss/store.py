@@ -444,7 +444,7 @@ class Store(ABC):
         for ds in msg.data:
             try:
                 self.update(ds)
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 log.warning(f"Could not store {type(ds).__name__} {ds}: {e}")
                 log.debug(repr(e))
 
