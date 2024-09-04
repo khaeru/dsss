@@ -100,7 +100,7 @@ def hashable_metadata(obj) -> Union[Tuple, str]:
     """Recursively generate a hashable collection from `obj`."""
     if obj is None:
         return ""
-    raise NotImplementedError  # pragma: no cover
+    raise NotImplementedError(type(obj))  # pragma: no cover
 
 
 @hashable_metadata.register
@@ -127,8 +127,8 @@ def _(obj: v30.MetadataSet):
 
 
 @hashable_metadata.register
-def _(obj: lxml.etree.ElementBase):
-    return lxml.etree.to_string(obj)
+def _(obj: lxml.etree._Element):
+    return lxml.etree.tostring(obj)
 
 
 @hashable_metadata.register
