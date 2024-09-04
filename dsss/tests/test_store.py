@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Tuple, cast
 
 import pytest
 import sdmx
@@ -107,7 +107,7 @@ class TestStore:
         artefacts to SDMX-ML.
         """
         return (
-            908  # NB 908 on GHA, 921 locally
+            907  # NB 907 on GHA, 920 locally
         ) - {
             FlatFileStore: 41,
             StructuredFileStore: 41,
@@ -184,14 +184,59 @@ class TestStore:
     def test_iter_keys0(self, s: Store, N_total):
         assert_le(N_total, len(list(s.iter_keys())))
 
-    def test_key(self, specimen, s: Store):
+    def test_key0(self, specimen, s: Store):
+        """Keys can be generated for certain specimens."""
         with specimen("ECB_EXR/1/M.USD.EUR.SP00.A.xml") as f:
             msg = sdmx.read_sdmx(f)
 
-        k = s.key(msg.data[0])
-
         # Key contains the ID of the maintainer of the DFD or DSD
-        assert "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == k
+        "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == s.key(msg.data[0])
+
+        with specimen("ESTAT/esms.xml") as f:
+            msg = sdmx.read_sdmx(f)
+
+        # Key is generated for a MetadataSet containing XHTMLAttributeValue / XML node
+        assert "metadata-ESTAT:ESMS-6473b2060169eb77" == s.key(msg.data[0])
+
+    def test_key1(self, s: Store) -> None:
+        """:meth:`.key` generates distinct values for MetadataSet."""
+        # print("\n".join(sorted(s.list())))
+
+        mdsd = cast(
+            v21.MetadataStructureDefinition,
+            s.get(
+                "urn:sdmx:org.sdmx.infomodel.metadatastructure.MetadataStructure=ESTAT:ESMS_SIMPLE(1.0)"
+            ),
+        )
+        rs = mdsd.report_structure["ESMS_SIMPLE_REPORT"]
+        mda = rs.get("CONTACT")
+
+        # Two MetadataSets that are identical (empty) have the same key; the hexdigest
+        # part is deterministic
+        mds0 = v21.MetadataSet(structured_by=mdsd)
+        mds1 = v21.MetadataSet(structured_by=mdsd)
+        assert (
+            "metadata-ESTAT:ESMS_SIMPLE-adaa503c71ac9574" == s.key(mds0) == s.key(mds1)
+        )
+
+        # Add a report with a single ReportedAttribute generates a specific key
+        mdr0 = v21.MetadataReport()
+        mds0.report.append(mdr0)
+        mdr0.metadata.append(
+            v21.OtherNonEnumeratedAttributeValue(value_for=mda, value="FOO")
+        )
+
+        # Key is deterministic
+        assert "metadata-ESTAT:ESMS_SIMPLE-2fce739abdc0c93a" == s.key(mds0)
+
+        # Adding identical content to `mds1` results in the same key
+        mdr1 = v21.MetadataReport()
+        mds1.report.append(mdr1)
+        mdr1.metadata.append(
+            v21.OtherNonEnumeratedAttributeValue(value_for=mda, value="FOO")
+        )
+
+        assert s.key(mds0) == s.key(mds1)
 
     @pytest.mark.parametrize(
         "N_exp, klass, kw",
@@ -202,7 +247,7 @@ class TestStore:
             (5, common.Codelist, dict(id="CL_UNIT_MULT")),  # klass= and id=
             (14, common.BaseDataSet, {}),  # DataSet
             # NB 14 on GHA, 15 locally, 32 for DictStore
-            (2, common.BaseMetadataSet, {}),  # MetadataSet
+            (1, common.BaseMetadataSet, {}),  # MetadataSet
         ),
     )
     def test_list(self, s: Store, N_exp: int, klass, kw):
