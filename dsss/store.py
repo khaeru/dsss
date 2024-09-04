@@ -34,8 +34,9 @@ import pickle
 import re
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from functools import lru_cache, singledispatchmethod
+from functools import lru_cache, singledispatch, singledispatchmethod
 from hashlib import blake2s
+from itertools import chain
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -56,10 +57,11 @@ from typing import (
     cast,
 )
 
+import lxml.etree
 import sdmx
 import sdmx.model.version
 import sdmx.urn
-from sdmx.model import common
+from sdmx.model import common, v21, v30
 
 if TYPE_CHECKING:
     import git
@@ -72,6 +74,7 @@ DATA_KEY_PATTERN = re.compile(
 )
 
 DataSetClass = (common.BaseDataSet, common.BaseMetadataSet)
+AnyMetadataSet = Union[v21.MetadataSet, v30.MetadataSet]
 
 
 T = TypeVar("T", common.BaseDataSet, common.BaseMetadataSet, covariant=True)
@@ -90,6 +93,47 @@ def dataset_kind(klass: type) -> Literal["data", "metadata"]:
         return "metadata"
     else:
         raise TypeError(klass)
+
+
+@singledispatch
+def hashable_metadata(obj) -> Union[Tuple, str]:
+    """Recursively generate a hashable collection from `obj`."""
+    if obj is None:
+        return ""
+    raise NotImplementedError  # pragma: no cover
+
+
+@hashable_metadata.register
+def _(obj: v21.MetadataSet):
+    return tuple(hashable_metadata(r) for r in obj.report)
+
+
+@hashable_metadata.register
+def _(obj: v21.MetadataReport):
+    return tuple(hashable_metadata(mda) for mda in obj.metadata)
+
+
+@hashable_metadata.register
+def _(obj: v21.ReportedAttribute):
+    return tuple(
+        hashable_metadata(c) for c in chain([getattr(obj, "value", None)], obj.child)
+    )
+
+
+@hashable_metadata.register
+def _(obj: v30.MetadataSet):
+    log.warning(f"No unique key for {type(obj)}")
+    return ""
+
+
+@hashable_metadata.register
+def _(obj: lxml.etree.ElementBase):
+    return lxml.etree.to_string(obj)
+
+
+@hashable_metadata.register
+def _(obj: str):
+    return obj
 
 
 def _short_urn(value: str) -> str:
@@ -259,6 +303,7 @@ class Store(ABC):
     @key.register(common.BaseDataSet)
     @key.register(common.BaseMetadataSet)
     def _key_ds(self, obj: DataType):
+        # parts0: shown in plain-text in the key
         # Identify the `kind` of `obj`—either "data" or "metadata"
         parts0: List[str] = [dataset_kind(type(obj))]
 
@@ -271,12 +316,12 @@ class Store(ABC):
             except AttributeError:
                 continue
 
+        # parts1: hashed to a hexdigest in the key
+        parts1: List[Any] = []
         if isinstance(obj, common.BaseDataSet):
-            parts1: List[Any] = [o.dimension for o in obj.obs]
-        else:
-            # TODO Construct a unique key for MetadataSet
-            log.warning(f"No unique key for {type(obj)}")
-            parts1 = [str(id(obj))]
+            parts1.extend(o.dimension for o in obj.obs)
+        elif isinstance(obj, (v21.MetadataSet, v30.MetadataSet)):
+            parts1.extend(hashable_metadata(obj))
 
         hashed_parts = blake2s(pickle.dumps(parts1), digest_size=8)
         return "-".join(parts0 + [hashed_parts.hexdigest()])

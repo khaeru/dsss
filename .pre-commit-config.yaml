@@ -5,6 +5,7 @@ repos:
   - id: mypy
     additional_dependencies:
     - GitPython
+    - lxml-stubs
     - pytest
     - sdmx1
     - starlette
