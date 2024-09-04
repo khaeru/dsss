@@ -284,11 +284,11 @@ class Store(ABC):
            <sdmx.model.common.IdentifiableArtefact.urn>`.
 
         :class:`~sdmx.model.common.BaseDataSet`, :class:`~sdmx.model.common.BaseMetadataSet`
-           Example: :py:`"DataSet-FOO:DSD_ID-adaa503c71ac9574"`
+           Example: :py:`"data-FOO:DSD_ID-adaa503c71ac9574"`
 
            The key consists of:
 
-           - :py:`"DataSet"` or similar, based on the class of `obj`;
+           - :py:`"data-"` or :py:`"metadata-"`, based on the class of `obj`;
            - the :attr:`IdentifiableArtefact.id
              <sdmx.model.common.IdentifiableArtefact.id>` of the maintainer of either
              (a) the :class:`Dataflow <sdmx.model.common.BaseDataflow>` that describes
