@@ -34,7 +34,7 @@ import pickle
 import re
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from functools import singledispatchmethod
+from functools import lru_cache, singledispatchmethod
 from hashlib import blake2s
 from pathlib import Path
 from typing import (
@@ -44,11 +44,14 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Mapping,
     MutableMapping,
     Optional,
+    Protocol,
     Set,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
@@ -63,12 +66,30 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-_DATA_KEY_PATTERN = re.compile(
-    r"(?P<class>[^-]+)-(?P<agency>[^:]+):(?P<id>[^-]+)-(?P<hash>.+)"
+#: Regular expression matching keys for (Meta)DataSet.
+DATA_KEY_PATTERN = re.compile(
+    r"(meta|)data-(?P<agency>[^:]+):(?P<id>[^-]+)-(?P<hash>.+)"
 )
 
 DataSetClass = (common.BaseDataSet, common.BaseMetadataSet)
-DataType = Union[common.BaseDataSet, common.BaseMetadataSet]
+
+
+T = TypeVar("T", common.BaseDataSet, common.BaseMetadataSet, covariant=True)
+
+
+class DataType(Protocol[T]):
+    def __hash__(self) -> int: ...
+
+
+@lru_cache()
+def dataset_kind(klass: type) -> Literal["data", "metadata"]:
+    """Return a ‘kind’ for a :class:`.BaseDataSet` or :class:`.BaseMetadataSet` type."""
+    if common.BaseDataSet in klass.mro():
+        return "data"
+    elif common.BaseMetadataSet in klass.mro():
+        return "metadata"
+    else:
+        raise TypeError(klass)
 
 
 def _short_urn(value: str) -> str:
@@ -86,7 +107,7 @@ def _maintainer_id(
         try:
             return sdmx.urn.match(sdmx.urn.expand(obj))["agency"]
         except ValueError:
-            if match := _DATA_KEY_PATTERN.fullmatch(obj):
+            if match := DATA_KEY_PATTERN.fullmatch(obj):
                 match.group("agency")
 
     ma = common.Agency(id="_MISSING")
@@ -235,13 +256,14 @@ class Store(ABC):
         """  # noqa: E501
         raise NotImplementedError  # if none of the overloads registered below apply
 
-    @key.register
+    @key.register(common.BaseDataSet)
+    @key.register(common.BaseMetadataSet)
     def _key_ds(self, obj: DataType):
-        parts0: List[str] = [type(obj).__name__]
+        # Identify the `kind` of `obj`—either "data" or "metadata"
+        parts0: List[str] = [dataset_kind(type(obj))]
 
-        # TODO Remove type exclusions when common.BaseMetaDataSet type hints are
-        #      improved
-        for candidate in obj.described_by, obj.structured_by:  # type: ignore [union-attr]
+        # TODO Remove exclusions when common.BaseMetadataSet type hints are improved
+        for candidate in obj.described_by, obj.structured_by:  # type: ignore [attr-defined]
             try:
                 urn = sdmx.urn.URN(sdmx.urn.make(candidate))
                 parts0.append(f"{urn.agency}:{urn.id}")
@@ -252,6 +274,7 @@ class Store(ABC):
         if isinstance(obj, common.BaseDataSet):
             parts1: List[Any] = [o.dimension for o in obj.obs]
         else:
+            # TODO Construct a unique key for MetadataSet
             log.warning(f"No unique key for {type(obj)}")
             parts1 = [str(id(obj))]
 
@@ -294,7 +317,7 @@ class Store(ABC):
         if issubclass(klass or object, DataSetClass):
             maintainer = maintainer or "[^:]+"
             id = id or "[^-]+"
-            pattern = f".*DataSet-{maintainer}:{id}-.*"
+            pattern = f"{dataset_kind(klass)}-{maintainer}:{id}-.*"
         else:
             placeholder = "@@@"
 
@@ -317,9 +340,7 @@ class Store(ABC):
                 .replace(replace_extra, ".*")
             )
 
-        urn_re = re.compile(pattern)
-
-        return list(filter(urn_re.fullmatch, self.iter_keys()))
+        return list(filter(re.compile(pattern).fullmatch, self.iter_keys()))
 
     def list_versions(self, klass: type, maintainer: str, id: str) -> Tuple[str, ...]:
         """Return all versions of a :class:`~sdmx.model.common.MaintainableArtefact`.
@@ -618,10 +639,10 @@ class StructuredFileStore(FileStore):
             return result
 
     def _key_for(self, path: Path) -> str:
-        """Inverse of path_for."""
+        """Inverse of :meth:`path_for`."""
         from sdmx.model import v21, v30
 
-        if "DataSet-" in path.name:
+        if DATA_KEY_PATTERN.fullmatch(path.name):
             return path.name
         else:
             # Reassemble the URN given the path name

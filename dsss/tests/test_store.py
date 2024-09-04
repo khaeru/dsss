@@ -46,7 +46,7 @@ def objects_and_keys() -> List[Tuple[common.AnnotableArtefact, str]]:
     dsd = v21.DataStructureDefinition(id="DSD_ID", maintainer=a)
     o2 = v21.DataSet(described_by=dfd, structured_by=dsd)
 
-    result.append((o2, "DataSet-FOO:DFD-adaa503c71ac9574"))
+    result.append((o2, "data-FOO:DFD-adaa503c71ac9574"))
 
     return result
 
@@ -184,7 +184,7 @@ class TestStore:
         k = s.key(msg.data[0])
 
         # Key contains the ID of the maintainer of the DFD or DSD
-        assert "GenericDataSet-ECB:ECB_EXR1-d8f6df84c6fd4880" == k
+        assert "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == k
 
     def test_list(self, s: Store):
         # klass= only
