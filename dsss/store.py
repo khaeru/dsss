@@ -415,7 +415,7 @@ class Store(ABC):
                 except Exception as e:
                     action = kwargs.get("errors", "raise")
                     if action == "log":
-                        log.warning(f"{key} {type(e).__name__}: {e}; skip")
+                        log.info(f"{key} {type(e).__name__}: {e}; skip")
                     else:  # pragma: no cover
                         raise
         else:
