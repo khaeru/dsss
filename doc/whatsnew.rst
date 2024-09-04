@@ -4,6 +4,7 @@ What's new?
 Next release
 ============
 
+- Generate stable, unique :mod:`.store` keys for :class:`sdmx.model.v21.MetadataSet` (:pull:`10`).
 - Improve :mod:`.store`; add the :class:`.GitStore` and :class:`.UnionStore` classes (:pull:`9`).
 - Expand documentation of :class:`.Store` (:pull:`8`).
 
