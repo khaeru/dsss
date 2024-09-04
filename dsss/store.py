@@ -501,7 +501,12 @@ class FileStore(Store):
 
     @set.register
     @update.register
-    def _(self, obj: Union[common.MaintainableArtefact, common.BaseDataSet]):
+    def _(
+        self,
+        obj: Union[
+            common.MaintainableArtefact, common.BaseDataSet, common.BaseMetadataSet
+        ],
+    ):
         key = self.key(obj)
 
         path = self.path_for(obj, key)
@@ -517,7 +522,7 @@ class FileStore(Store):
 
     def read_message(
         self, path: Path
-    ) -> Union[common.MaintainableArtefact, common.BaseDataSet]:
+    ) -> Union[common.MaintainableArtefact, common.BaseDataSet, common.BaseMetadataSet]:
         """Read a :class:`sdmx.message.Message` from `path` and return its contents."""
         msg = sdmx.read_sdmx(path)
 
@@ -552,6 +557,20 @@ class FileStore(Store):
         try:
             with open(path, "wb") as f:
                 f.write(sdmx.to_xml(dm, pretty_print=True))
+        except Exception:
+            # log.error(f"Writing to {path}: {e}")
+            path.unlink()
+            raise
+
+    @write_message.register
+    def _mds(self, obj: common.BaseMetadataSet, path):
+        """Write MetadataMessage."""
+        mdm = sdmx.message.MetadataMessage()
+        mdm.data.append(obj)
+
+        try:
+            with open(path, "wb") as f:
+                f.write(sdmx.to_xml(mdm, pretty_print=True))
         except Exception:
             # log.error(f"Writing to {path}: {e}")
             path.unlink()
