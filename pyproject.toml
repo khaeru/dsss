@@ -53,6 +53,9 @@ exclude_also = [
 ]
 omit = ["dsss/storage/google_cloud_storage.py"]
 
+[tool.mypy]
+exclude = ["^build/"]
+
 [[tool.mypy.overrides]]
 # Packages for which no type hints are available
 module = ["google.cloud"]
