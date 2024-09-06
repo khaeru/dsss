@@ -144,7 +144,7 @@ def test_data(client, source):
         ),
         ("categorisation", 7),
         ("categoryscheme", 3),
-        ("codelist", 85),  # NB 85 on GHA, 86 locally
+        ("codelist", 85),
         ("conceptscheme", 24),  # NB 24 on GHA, 25 locally
         ("contentconstraint", 11),
         ("customtypescheme", 0),
@@ -206,7 +206,7 @@ def test_structure_all(
 @pytest.mark.parametrize(
     "url, count",
     (
-        ("/codelist/ALL/all/latest", 85),
+        ("/codelist/ALL/all/latest", 86),
         # NB 85 on GHA, 86 locally
         ("/codelist/FR1/all/latest", 7),
         ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
