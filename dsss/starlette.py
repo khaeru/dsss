@@ -11,6 +11,7 @@
 
 from datetime import datetime
 from importlib import import_module
+from traceback import format_exception
 from typing import TYPE_CHECKING
 
 from starlette.applications import Starlette
@@ -89,7 +90,7 @@ def build_app(**config_kwargs):
 async def handle_exception(request: "starlette.requests.Request", exc):
     """Handle errors."""
     code = exc.status_code
-    text = repr(exc)
+    text = "\n\n".join([repr(exc)] + format_exception(exc))
 
     if code == 404:
         # 404 indicates a routing failure, e.g. the user gave a malformed URL
