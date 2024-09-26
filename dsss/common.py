@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from traceback import format_exception
 from typing import TYPE_CHECKING, Collection, List, Mapping, Optional, Type
 
 import sdmx
@@ -65,7 +66,13 @@ class SDMXResponse(Response):
                 body = sdmx.to_xml(self.message, pretty_print=True)
             except Exception as e:
                 body = sdmx.to_xml(
-                    gen_error_message(500, f"Error rendering message: {e!r}"),
+                    gen_error_message(
+                        500,
+                        "".join(
+                            ["Error rendering message:\n", f"{self.message!r}\n"]
+                            + format_exception(e)
+                        ),
+                    ),
                     pretty_print=True,
                 )
         else:
