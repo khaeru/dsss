@@ -57,7 +57,7 @@ jobs:
         SDMX_TEST_DATA: ./sdmx-test-data/
       run: |
         pytest dsss \
-          -ra --color=yes --verbose \
+          -rA --color=yes --durations=20 --verbose \
           --cov-report=xml \
           --numprocesses auto
       shell: bash
