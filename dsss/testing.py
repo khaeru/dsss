@@ -28,7 +28,9 @@ def ignore(p: "Path") -> bool:
     references a different DSD (DataStructure=ECB:EXR(1.0)) than the real-world one
     (DataStructure=ECB:ECB_EXR1(1.0)). Ignore this data flow definition.
     """
-    return p.parts[-3:] == ("v3", "xml", "dataflow.xml")
+    return (p.parts[-3:] == ("v3", "xml", "dataflow.xml")) or (
+        p.parts[-2:] == ("IAEG-SDGs", "metadatastructure-0.xml")
+    )
 
 
 @pytest.fixture(scope="session")

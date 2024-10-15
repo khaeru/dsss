@@ -15,7 +15,7 @@ from dsss.store import (
     StructuredFileStore,
     UnionStore,
 )
-from dsss.testing import GHA, assert_le
+from dsss.testing import assert_le
 
 if TYPE_CHECKING:
     import pathlib
@@ -293,7 +293,7 @@ class TestStore:
         )
 
         # Number of dimensions in the object prior to resolving the reference
-        if isinstance(s, (DictStore, UnionStore)) and not GHA:
+        if isinstance(s, (DictStore, UnionStore)):
             # With DictStore or UnionStore dispatching to DictStore, objects all remain
             # in memory and refer to one another; is_external_reference is False
             N_dimensions_pre, is_external_reference_pre = 4, False

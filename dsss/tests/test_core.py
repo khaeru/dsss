@@ -196,11 +196,16 @@ def test_structure_all(
     # Response can be parsed as SDMX-ML
     msg = sdmx.read_sdmx(BytesIO(rv.content))
 
-    if count is None:
-        # An error message was returned indicating the given endpoint is not implemented
-        assert isinstance(msg, ErrorMessage)
-    else:
+    if isinstance(msg, ErrorMessage):
+        if count is None:
+            pass  # No returned objects, because the given endpoint is not implemented
+        else:
+            print(rv.content.decode())
+            assert False, "Unexpected ErrorMessage"
+    elif count is not None:
         assert_le(count, len(msg.objects(klass)))
+    else:  # pragma: no cover
+        raise Exception("Malformed test case")
 
 
 @pytest.mark.parametrize(
