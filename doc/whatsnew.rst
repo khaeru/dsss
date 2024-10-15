@@ -1,8 +1,10 @@
 What's new?
 ***********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Python 3.13 (`released 2024-10-07 <https://www.python.org/downloads/release/python-3130/>`_) is fully supported (:pull:`13`).
 
 v1.1.0 (2024-09-04)
 ===================
