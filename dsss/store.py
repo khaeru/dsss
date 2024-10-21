@@ -250,7 +250,7 @@ class Store(ABC):
         """Update `obj` and return its key."""
 
     # Concrete methods
-    def assign_version(self, obj, **kwargs):
+    def assign_version(self, obj, **kwargs) -> None:
         """Assign a version to `obj` subsequent to any existing versions.
 
         See also
@@ -259,12 +259,14 @@ class Store(ABC):
         """
         versions = self.list_versions(type(obj), obj.maintainer.id, obj.id)
 
-        if versions:
-            next_version = sdmx.model.version.increment(versions[1], **kwargs)
+        try:
+            last_version = sdmx.model.version.Version(versions[-1])
+        except (IndexError, TypeError):
+            # IndexError: `versions` is empty
+            # TypeError: last of `versions` is not a version-string, e.g. None
+            obj.version = sdmx.model.version.increment("0.0.0", **kwargs)
         else:
-            next_version = sdmx.model.version.increment("0.0.0", **kwargs)
-
-        obj.version = next_version
+            obj.version = last_version.increment(**kwargs)
 
     def invoke_hooks(self, kind: str, *args, **kwargs) -> None:
         """Invoke each callable in :attr:`hook` with :attr:`hook_id` `kind`."""
