@@ -181,6 +181,10 @@ class TestStore:
             assert hasattr(result, "compare")  # TODO For mypy; remove when possible
             assert result.compare(obj, strict=strict)
 
+        # Accessing an invalid key raises KeyError
+        with pytest.raises(KeyError):
+            s.get("FOO")
+
     def test_iter_keys0(self, s: Store, N_total):
         assert_le(N_total, len(list(s.iter_keys())))
 

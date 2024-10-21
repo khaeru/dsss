@@ -571,7 +571,10 @@ class FileStore(Store):
 
     def get(self, key: str):
         path = self.path_for(None, key)
-        return self.read_message(path)
+        try:
+            return self.read_message(path)
+        except (FileNotFoundError, IsADirectoryError):
+            raise KeyError(key)
 
     @singledispatchmethod
     def set(self, obj):
