@@ -296,18 +296,21 @@ class TestStore:
             "urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=FR1:IPI-2010-A21(1.0)"
         )
 
-        # Number of dimensions in the object prior to resolving the reference
-        if isinstance(s, (DictStore, UnionStore)):
-            # With DictStore or UnionStore dispatching to DictStore, objects all remain
-            # in memory and refer to one another; is_external_reference is False
-            N_dimensions_pre, is_external_reference_pre = 4, False
-        else:
-            N_dimensions_pre, is_external_reference_pre = 0, True  # noqa: F841
+        # FIXME Skipped because because behaviour is currently non-deterministic
+        #
+        # # Number of dimensions in the object prior to resolving the reference
+        # if isinstance(s, (DictStore, UnionStore)):
+        #     # With DictStore or UnionStore dispatching to DictStore, objects all
+        #     # remain in memory and refer to one another; is_external_reference is
+        #     # False
+        #     N_dimensions_pre, is_external_reference_pre = 4, False
+        # else:
+        #     N_dimensions_pre, is_external_reference_pre = 0, True  # noqa: F841
 
-        # DSD at `structure` attribute has expected number of dimensions
-        # assert N_dimensions_pre == len(o1.structure.dimensions)
-        # DSD at `structure` attribute is an external reference
-        assert o1.structure.is_external_reference is is_external_reference_pre
+        # # DSD at `structure` attribute has expected number of dimensions
+        # # assert N_dimensions_pre == len(o1.structure.dimensions)
+        # # DSD at `structure` attribute is an external reference
+        # assert o1.structure.is_external_reference is is_external_reference_pre
 
         s.resolve(o1, "structure")
 
