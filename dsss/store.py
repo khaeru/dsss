@@ -586,8 +586,14 @@ class FileStore(Store):
     def update(self, obj):
         raise NotImplementedError
 
-    @set.register
-    @update.register
+    @set.register(common.MaintainableArtefact)  # py3.10 compat
+    @set.register(common.BaseDataSet)
+    @set.register(common.BaseMetadataSet)
+    # @set.register  # py3.11
+    @update.register(common.MaintainableArtefact)  # py3.10 compat
+    @update.register(common.BaseDataSet)
+    @update.register(common.BaseMetadataSet)
+    # @update.register  # py3.11
     def _(
         self,
         obj: Union[

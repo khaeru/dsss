@@ -1,8 +1,8 @@
 """Common code and utilities."""
 
 import logging
+import traceback
 from datetime import datetime
-from traceback import format_exception
 from typing import TYPE_CHECKING, Collection, List, Mapping, Optional, Type
 
 import sdmx
@@ -100,6 +100,14 @@ def gen_error_message(code: int, text: str) -> "sdmx.message.ErrorMessage":
     msg = sdmx.message.ErrorMessage(footer=sdmx.message.Footer(code=code))
     add_footer_text(msg, [f"{RESPONSE_CODE[code]}: {text}"])
     return msg
+
+
+def format_exception(exc) -> list[str]:
+    """Like :func:`traceback.format_exception`, compatible with Python 3.9."""
+    try:
+        return traceback.format_exception(exc)
+    except TypeError:
+        return traceback.format_exception(type(exc), exc, exc.__traceback__)
 
 
 def gen_error_response(code: int, text: str = "") -> SDMXResponse:
