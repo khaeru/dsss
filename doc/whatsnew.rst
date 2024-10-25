@@ -5,6 +5,7 @@ Next release
 ============
 
 - Python 3.13 (`released 2024-10-07 <https://www.python.org/downloads/release/python-3130/>`_) is fully supported (:pull:`13`).
+- Python 3.9 and 3.10 are fully supported (:pull:`15`).
 - Bug fix: :meth:`.Store.assign_version` would increment the 1-th, instead of largest, existing version (:pull:`14`).
 - Bug fix: :class:`.FileStore` raised :class:`FileNotFoundError` or :class:`IsADirectoryError`, instead of :class:`KeyError`, on a missing key (:pull:`14`).
 
