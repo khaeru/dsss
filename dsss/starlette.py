@@ -11,7 +11,6 @@
 
 from datetime import datetime
 from importlib import import_module
-from traceback import format_exception
 from typing import TYPE_CHECKING
 
 from starlette.applications import Starlette
@@ -21,7 +20,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from starlette.responses import HTMLResponse
 from starlette.routing import Route
 
-from .common import SDMXResponse, gen_error_message
+from .common import SDMXResponse, format_exception, gen_error_message
 from .config import Config
 
 if TYPE_CHECKING:
