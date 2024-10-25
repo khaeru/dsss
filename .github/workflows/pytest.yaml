@@ -20,7 +20,8 @@ jobs:
         os:
         - ubuntu-latest
         python-version:
-        - "3.11"  # Earliest supported version
+        - "3.10"  # Earliest supported version
+        - "3.11"
         - "3.12"
         - "3.13"  # Latest supported version
         # commented: only enable once next Python version enters RC
