@@ -14,15 +14,6 @@ from sdmx.rest.common import Resource
 
 from dsss.testing import assert_le
 
-
-def test_index(client):
-    rv = client.get("/")
-    assert (
-        b"""This is a <a href="https://github.com/khaeru/dsss">DSSS</a> server."""
-        in rv.content
-    )
-
-
 SIMPLE_TESTS = (
     #
     # Structure
@@ -49,6 +40,53 @@ SIMPLE_TESTS = (
 )
 
 
+@pytest.fixture
+def source():
+    from sdmx.source import Source
+
+    yield Source(id="A0", url="https://example.com", name="Test source")
+
+
+def test_data(client, source):
+    url = "/data/ECB,EXR"
+    # Query succeeds
+    rv = client.get(url)
+    assert 200 == rv.status_code
+
+    # Response can be parsed as SDMX-ML
+    msg = sdmx.read_sdmx(BytesIO(rv.content))
+
+    # Collection has the expected number of entries
+    assert 1 == len(msg.data)
+
+
+def test_get_data(cached_store_for_app):
+    from dsss.config import Config
+    from dsss.data import get_data
+
+    config = Config(store=cached_store_for_app)
+
+    result = get_data(
+        config,
+        path_params=dict(
+            flow_ref=["ECB", "EXR", "latest"], key="all", provider_ref="all"
+        ),
+        query_params=dict(),
+    )
+
+    assert 1 == len(result.data)
+    ds = result.data[0]
+    assert 252 == len(ds)
+
+
+def test_index(client):
+    rv = client.get("/")
+    assert (
+        b"""This is a <a href="https://github.com/khaeru/dsss">DSSS</a> server."""
+        in rv.content
+    )
+
+
 @pytest.mark.parametrize(
     "path, code, expr", SIMPLE_TESTS, ids=map(itemgetter(0), SIMPLE_TESTS)
 )
@@ -67,13 +105,6 @@ def test_path0(client, path, code, expr):
 
     # Response can be parsed using sdmx1
     sdmx.read_sdmx(BytesIO(rv.content))
-
-
-@pytest.fixture
-def source():
-    from sdmx.source import Source
-
-    yield Source(id="A0", url="https://example.com", name="Test source")
 
 
 @pytest.mark.parametrize(
@@ -99,27 +130,15 @@ def test_path1(
     assert 400 != rv.status_code
 
 
-def test_get_data(cached_store_for_app):
-    from dsss.config import Config
-    from dsss.data import get_data
-
-    config = Config(store=cached_store_for_app)
-
-    result = get_data(
-        config,
-        path_params=dict(
-            flow_ref=["ECB", "EXR", "latest"], key="all", provider_ref="all"
-        ),
-        query_params=dict(),
-    )
-
-    assert 1 == len(result.data)
-    ds = result.data[0]
-    assert 252 == len(ds)
-
-
-def test_data(client, source):
-    url = "/data/ECB,EXR"
+@pytest.mark.parametrize(
+    "url, count",
+    (
+        ("/codelist/ALL/all/latest", 85),  # NB 85 on GHA, 86 locally
+        ("/codelist/FR1/all/latest", 7),
+        ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
+    ),
+)
+def test_structure(client, source, url, count):
     # Query succeeds
     rv = client.get(url)
     assert 200 == rv.status_code
@@ -128,7 +147,7 @@ def test_data(client, source):
     msg = sdmx.read_sdmx(BytesIO(rv.content))
 
     # Collection has the expected number of entries
-    assert 1 == len(msg.data)
+    assert_le(count, len(msg.objects(common.Codelist)))
 
 
 @pytest.mark.parametrize("url_class", [sdmx.rest.v21.URL, sdmx.rest.v30.URL])
@@ -206,23 +225,3 @@ def test_structure_all(
         assert_le(count, len(msg.objects(klass)))
     else:  # pragma: no cover
         raise Exception("Malformed test case")
-
-
-@pytest.mark.parametrize(
-    "url, count",
-    (
-        ("/codelist/ALL/all/latest", 85),  # NB 85 on GHA, 86 locally
-        ("/codelist/FR1/all/latest", 7),
-        ("/codelist/ALL/CL_UNIT_MULT/latest", 5),
-    ),
-)
-def test_structure(client, source, url, count):
-    # Query succeeds
-    rv = client.get(url)
-    assert 200 == rv.status_code
-
-    # Response can be parsed as SDMX-ML
-    msg = sdmx.read_sdmx(BytesIO(rv.content))
-
-    # Collection has the expected number of entries
-    assert_le(count, len(msg.objects(common.Codelist)))
