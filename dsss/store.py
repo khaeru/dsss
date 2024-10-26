@@ -560,10 +560,30 @@ class FileStore(Store):
     #: Expressions giving file paths to ignore.
     ignore: Set[Callable[[Path], bool]] = set()
 
+    #: Map a path to a path that is valid on the current file system.
+    _safe_path: Callable[[Path], Path]
+    #: Reverse _safe_path().
+    _restore_path: Callable[[Path], Path]
+
     def __init__(self, path: Path, **kwargs) -> None:
+        import platform
+
         self.path = path
         self.path.mkdir(parents=True, exist_ok=True)
         super().__init__(**kwargs)
+
+        if platform.system() == "Windows":
+
+            def _sp(p: Path) -> Path:
+                return p.with_name(p.name.replace(":", "#"))
+
+            def _rp(p: Path) -> Path:
+                return p.with_name(p.name.replace("#", ":"))
+
+            self._safe_path = _sp
+            self._restore_path = _rp
+        else:
+            self._safe_path = self._restore_path = lambda p: p
 
     def delete(self, key):
         try:
@@ -575,7 +595,7 @@ class FileStore(Store):
         path = self.path_for(None, key)
         try:
             return self.read_message(path)
-        except (FileNotFoundError, IsADirectoryError):
+        except (FileNotFoundError, IsADirectoryError, PermissionError):
             raise KeyError(key)
 
     @singledispatchmethod
@@ -611,7 +631,7 @@ class FileStore(Store):
 
     @abstractmethod
     def path_for(self, obj, key) -> Path:
-        """Construct the path to the file to be written."""
+        """Construct the path to the file to be written for `obj`, or read for `key`."""
 
     def read_message(
         self, path: Path
@@ -689,30 +709,36 @@ class FlatFileStore(FileStore):
     def iter_keys(self):
         return map(
             lambda p: p.name,
-            filter(lambda p: not any(f(p) for f in self.ignore), self.path.iterdir()),
+            filter(
+                lambda p: not any(f(p) for f in self.ignore),
+                map(self._restore_path, self.path.iterdir()),
+            ),
         )
 
     def path_for(self, obj, key) -> Path:
-        return self.path.joinpath(key)
+        return self._safe_path(self.path.joinpath(key))
 
 
 class StructuredFileStore(FileStore):
     """FileStore arranged in directories by maintainer, with more readable names."""
 
     def path_for(self, obj, key) -> Path:
+        name = self._safe_path(Path(_short_urn(key)))
         if obj is None:
-            candidates = list(self.path.rglob(_short_urn(key)))
+            candidates = list(self.path.rglob(name.name))
             if len(candidates) != 1:
                 raise KeyError(f"{len(candidates)} matches for {key}: {candidates}")
             return candidates[0]
         else:
-            result = self.path.joinpath(_maintainer_id(obj), _short_urn(key))
+            result = self.path.joinpath(_maintainer_id(obj), name)
             result.parent.mkdir(exist_ok=True)
             return result
 
     def _key_for(self, path: Path) -> str:
         """Inverse of :meth:`path_for`."""
         from sdmx.model import v21, v30
+
+        path = self._restore_path(path)
 
         if DATA_KEY_PATTERN.fullmatch(path.name):
             return path.name
