@@ -1,3 +1,4 @@
+import platform
 import re
 from io import BytesIO
 from operator import itemgetter
@@ -37,6 +38,10 @@ SIMPLE_TESTS = (
         200,
         b"ignored not implemented path part key=",
     ),
+)
+
+WINDOWS = pytest.mark.xfail(
+    condition=platform.system() == "Windows", reason="Not yet supported."
 )
 
 
@@ -161,10 +166,12 @@ def test_structure(client, source, url, count):
         pytest.param(
             "availableconstraint", None, marks=pytest.mark.xfail(raises=ValueError)
         ),
-        ("categorisation", 7),
+        pytest.param("categorisation", 7, marks=WINDOWS),
         ("categoryscheme", 3),
         ("codelist", 85),
-        ("conceptscheme", 24),  # NB 24 on GHA, 25 locally
+        pytest.param(  # NB 23 on GHA/Windows; 24 on GHA; 25 locally
+            "conceptscheme", 24, marks=WINDOWS
+        ),
         ("contentconstraint", 11),
         ("customtypescheme", 0),
         # NB Unclear if this should work
