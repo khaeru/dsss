@@ -1,8 +1,11 @@
 What's new?
 ***********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.3.0 (2024-10-26)
+===================
 
 - :class:`.FileStore` and related classes are usable on Windows file systems (:pull:`17`); directory and file paths are constructed without using invalid characters such as ``:``.
    This does *not* imply that :mod:`dsss` is fully supported on Windows.
