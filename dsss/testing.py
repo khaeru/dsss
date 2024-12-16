@@ -2,6 +2,8 @@
 
 import logging
 import os
+import sys
+from io import StringIO
 from typing import TYPE_CHECKING
 
 import pytest
@@ -43,7 +45,17 @@ def cached_store_for_app(pytestconfig, specimen):
         pytestconfig.cache.mkdir("sdmx-test-data")
 
     s = DictStore()
-    s.update_from(specimen.base_path, ignore=[ignore])
+
+    # Capture noise from sdmx on reading known unsupported specimens from sdmx-test-data
+    # NB Cannot use Pytest capsys or monkeypatch, as this is a session-scoped fixture
+    try:
+        stdout = sys.stdout  # Replace sys.stdout with a temporary buffer
+        buf = sys.stdout = StringIO()
+
+        s.update_from(specimen.base_path, ignore=[ignore])  # Update the DictStore
+    finally:
+        sys.stdout = stdout  # Restore
+        del buf
 
     yield s
 
