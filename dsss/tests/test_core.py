@@ -169,9 +169,7 @@ def test_structure(client, source, url, count):
         pytest.param("categorisation", 7, marks=WINDOWS),
         ("categoryscheme", 3),
         ("codelist", 85),
-        pytest.param(  # NB 23 on GHA/Windows; 24 on GHA; 25 locally
-            "conceptscheme", 24, marks=WINDOWS
-        ),
+        ("conceptscheme", 23),  # NB 23 on GHA; 25 locally
         ("contentconstraint", 11),
         ("customtypescheme", 0),
         # NB Unclear if this should work
