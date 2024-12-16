@@ -166,7 +166,7 @@ def test_structure(client, source, url, count):
         pytest.param(
             "availableconstraint", None, marks=pytest.mark.xfail(raises=ValueError)
         ),
-        pytest.param("categorisation", 7, marks=WINDOWS),
+        ("categorisation", 5),
         ("categoryscheme", 3),
         ("codelist", 85),
         ("conceptscheme", 23),  # NB 23 on GHA; 25 locally
