@@ -9,7 +9,7 @@ import sdmx
 import sdmx.rest.v21
 import sdmx.rest.v30
 import sdmx.tests.test_rest
-from sdmx.message import ErrorMessage
+from sdmx.message import ErrorMessage, StructureMessage
 from sdmx.model import common
 from sdmx.rest.common import Resource
 
@@ -229,6 +229,7 @@ def test_structure_all(
             print(rv.content.decode())
             assert False, "Unexpected ErrorMessage"
     elif count is not None:
+        assert isinstance(msg, StructureMessage)
         assert_le(count, len(msg.objects(klass)))
     else:  # pragma: no cover
         raise Exception("Malformed test case")
