@@ -3,6 +3,7 @@
 import logging
 import traceback
 from datetime import datetime
+from functools import partial
 from typing import TYPE_CHECKING, Collection, List, Mapping, Optional, Type
 
 import sdmx
@@ -59,27 +60,22 @@ class SDMXResponse(Response):
             }
         )
 
+        # Use pretty-print by default
+        to_xml = partial(sdmx.to_xml, pretty_print=True)
+
         if "+xml" in (self.media_type or ""):
             # SDMX-ML
             # TODO Check for v2.1 versus v3.0.0
             try:
-                body = sdmx.to_xml(self.message, pretty_print=True)
+                body = to_xml(self.message)
             except Exception as e:
-                body = sdmx.to_xml(
-                    gen_error_message(
-                        500,
-                        "".join(
-                            ["Error rendering message:\n", f"{self.message!r}\n"]
-                            + format_exception(e)
-                        ),
-                    ),
-                    pretty_print=True,
-                )
+                lines = ["Error rendering message:\n", f"{self.message!r}\n"]
+                lines.extend(format_exception(e))
+                body = to_xml(gen_error_message(500, "".join(lines)))
         else:
             # Something else
-            body = sdmx.to_xml(
+            body = to_xml(
                 gen_error_message(501, f"Return media type {self.media_type!r}"),
-                pretty_print=True,
             )
 
         await send({"type": "http.response.body", "body": body})
