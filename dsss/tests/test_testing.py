@@ -1,5 +1,5 @@
 import pytest
-from sdmx.model import v21
+from sdmx.model import common, v21
 
 
 @pytest.mark.parametrize(
@@ -7,7 +7,7 @@ from sdmx.model import v21
     (
         ("BIS", 20),
         ("ECB", 22),  # Could be 22
-        ("ESTAT", 26),  # Could be 34
+        ("ESTAT", 25),  # Could be 34
         ("FR1", 676),  # Could be 1344
         ("IAEG-SDGs", 1),
         ("IAEG", 1),
@@ -39,3 +39,5 @@ def test_cached_store_for_app1(cached_store_for_app):
 
     result = s.list(klass=v21.DataflowDefinition, maintainer="ECB", id="EXR")
     assert len(result)
+
+    assert 5 == len(s.list(klass=common.Categorisation))

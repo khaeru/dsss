@@ -2,6 +2,8 @@
 
 import logging
 import os
+import sys
+from io import StringIO
 from typing import TYPE_CHECKING
 
 import pytest
@@ -36,6 +38,8 @@ def ignore(p: "Path") -> bool:
 @pytest.fixture(scope="session")
 def cached_store_for_app(pytestconfig, specimen):
     """A :class:`.DictStore` with the :mod:`sdmx.testing` specimen collection loaded."""
+    from sdmx.urn import expand
+
     from dsss.store import DictStore
 
     cache_dir = pytestconfig.cache._cachedir.joinpath("sdmx-test-data")
@@ -43,7 +47,23 @@ def cached_store_for_app(pytestconfig, specimen):
         pytestconfig.cache.mkdir("sdmx-test-data")
 
     s = DictStore()
-    s.update_from(specimen.base_path, ignore=[ignore])
+
+    # Capture noise from sdmx on reading known unsupported specimens from sdmx-test-data
+    # NB Cannot use Pytest capsys or monkeypatch, as this is a session-scoped fixture
+    try:
+        stdout = sys.stdout  # Replace sys.stdout with a temporary buffer
+        buf = sys.stdout = StringIO()
+
+        s.update_from(specimen.base_path, ignore=[ignore])  # Update the DictStore
+    finally:
+        sys.stdout = stdout  # Restore
+        del buf
+
+    # Remove or add certain items from the set used in tests
+    for short_urn in (
+        "Categorisation=ESTAT:DEMO_TOT(1.0)",  # Causes errors on GHA, not locally
+    ):
+        s.delete(expand(short_urn))
 
     yield s
 

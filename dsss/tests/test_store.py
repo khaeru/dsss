@@ -20,6 +20,8 @@ from dsss.testing import assert_le
 if TYPE_CHECKING:
     import pathlib
 
+    import sdmx.message
+
 log = logging.getLogger(__name__)
 
 
@@ -191,13 +193,13 @@ class TestStore:
     def test_key0(self, specimen, s: Store):
         """Keys can be generated for certain specimens."""
         with specimen("ECB_EXR/1/M.USD.EUR.SP00.A.xml") as f:
-            msg = sdmx.read_sdmx(f)
+            msg = cast("sdmx.message.DataMessage", sdmx.read_sdmx(f))
 
         # Key contains the ID of the maintainer of the DFD or DSD
         "data-ECB:ECB_EXR1-d8f6df84c6fd4880" == s.key(msg.data[0])
 
         with specimen("ESTAT/esms.xml") as f:
-            msg = sdmx.read_sdmx(f)
+            msg = cast("sdmx.message.DataMessage", sdmx.read_sdmx(f))
 
         # Key is generated for a MetadataSet containing XHTMLAttributeValue / XML node
         assert "metadata-ESTAT:ESMS-6473b2060169eb77" == s.key(msg.data[0])
