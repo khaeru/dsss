@@ -62,7 +62,7 @@ omit = ["dsss/storage/google_cloud_storage.py"]
 version.source = "versioningit"
 
 [tool.mypy]
-exclude = ["^build/"]
+files = ["conftest.py", "doc", "dsss"]
 
 [[tool.mypy.overrides]]
 # Packages for which no type hints are available
