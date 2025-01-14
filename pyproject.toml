@@ -1,5 +1,6 @@
 [build-system]
-requires = ["build", "setuptools-scm"]
+requires = ["hatchling", "versioningit"]
+build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
@@ -57,6 +58,9 @@ exclude_also = [
 ]
 omit = ["dsss/storage/google_cloud_storage.py"]
 
+[tool.hatch]
+version.source = "versioningit"
+
 [tool.mypy]
 exclude = ["^build/"]
 
@@ -74,7 +78,5 @@ addopts = "--cov=dsss --cov-report="
 select = ["C9", "E", "F", "I", "W"]
 mccabe.max-complexity = 10
 
-[tool.setuptools.packages]
-find = {}
-
-[tool.setuptools_scm]
+[tool.versioningit]
+default-version = "0.1.dev1"  # Match setuptools-scm
