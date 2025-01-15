@@ -1,5 +1,6 @@
 [build-system]
-requires = ["build", "setuptools-scm"]
+requires = ["hatchling", "versioningit"]
+build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
@@ -39,7 +40,7 @@ tests = [
   "dsss[git-store]",
   "pytest >= 8",
   "pytest-cov",
-  "sdmx1[tests]",  # for Jinja2
+  "sdmx1[tests] >= 2.21.1",  # for Jinja2; version for --sdmx-fetch-data
   "starlette[full]",  # for httpx
 ]
 
@@ -57,8 +58,11 @@ exclude_also = [
 ]
 omit = ["dsss/storage/google_cloud_storage.py"]
 
+[tool.hatch]
+version.source = "versioningit"
+
 [tool.mypy]
-exclude = ["^build/"]
+files = ["conftest.py", "doc", "dsss"]
 
 [[tool.mypy.overrides]]
 # Packages for which no type hints are available
@@ -74,7 +78,5 @@ addopts = "--cov=dsss --cov-report="
 select = ["C9", "E", "F", "I", "W"]
 mccabe.max-complexity = 10
 
-[tool.setuptools.packages]
-find = {}
-
-[tool.setuptools_scm]
+[tool.versioningit]
+default-version = "0.1.dev1"  # Match setuptools-scm

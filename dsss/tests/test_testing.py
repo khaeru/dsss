@@ -40,4 +40,4 @@ def test_cached_store_for_app1(cached_store_for_app):
     result = s.list(klass=v21.DataflowDefinition, maintainer="ECB", id="EXR")
     assert len(result)
 
-    assert 5 == len(s.list(klass=common.Categorisation))
+    assert 6 == len(s.list(klass=common.Categorisation))
