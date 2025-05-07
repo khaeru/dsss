@@ -1,8 +1,0 @@
-comment:
-  # Don't display the large graph
-  layout: "diff, files"
-
-coverage:
-  status:
-    project:
-      default: {}
